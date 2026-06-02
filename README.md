@@ -65,4 +65,62 @@ Siehe [`docker/OT-TEST-README.md`](docker/OT-TEST-README.md).
 
 Der Diagnoselauf gegen die echte DKX2 war erfolgreich — der AKC startet unter Mono, verbindet sich und loggt sich ein. Ein weiterer Diagnoselauf ist nicht mehr nötig.
 
-Nächster Schritt ist Phase 3: Produktiv-Container (AKC im Xvfb gerendert, per x11vnc/Guacamole im Browser bedienbar).
+Nächster Schritt ist Phase 3: Produktiv-Container (AKC im Xvfb gerendert, per x11vnc/noVNC im Browser bedienbar).
+
+## Phase 3: Produktiv-Container (Xvfb → x11vnc → noVNC)
+
+Statt Frames per Reflection aus `rccore` zu ziehen, läuft der AKC seinen **normalen UI-Code-Pfad** in einem virtuellen X-Display (Xvfb). Das gerenderte Display wird per `x11vnc` als VNC exportiert und über `websockify`/`noVNC` im Browser zugänglich gemacht — kein Java, kein IE, kein Client-Plugin.
+
+### Architektur
+
+```
+                          Container
+┌─────────────────────────────────────────────────────────────┐
+│                                                               │
+│  Browser ─WS─▶ noVNC / websockify ─VNC─▶ x11vnc               │
+│   (6080)                          (5900)    │                 │
+│                                             │ grab            │
+│                                             ▼                 │
+│                                          Xvfb :99             │
+│                                             ▲                 │
+│                                             │ render          │
+│                                       AKC (kxgui-patched.exe) │
+│                                          in Mono              │
+│                                             │                 │
+│                                  HTTP-Login + Init/Connect    │
+│                                             │                 │
+└─────────────────────────────────────────────┼───────────────┘
+                                               ▼
+                                         DKX2 KVM-IP
+```
+
+### Ablauf (Bridge v16)
+
+1. **HTTP-Login** → `POST /auth.asp?client=dotnet` liefert `pp_session_id`
+2. **AKC-Stack** via Reflection konstruieren (`apm`, `dpm`, `fav`, `t`, `bm`)
+3. **`Form.Show()`** macht das Fenster im Xvfb sichtbar (Paint-Events feuern)
+4. **Init/Connect** auf dem `BrowserMediator` (Session-Token, `portId`, `portType=VM`, `portPermission=CCC`)
+5. **`Application.Run(t)`** blockt im UI-Thread — AKC öffnet den KVM-Viewer als zweite Form und malt die Frames selbst
+6. **`x11vnc`** exportiert `Xvfb :99` als VNC auf Port 5900
+7. **`websockify`/`noVNC`** stellt den Stream als Browser-Frontend auf Port 6080 bereit
+
+### Cecil-Patches in `kxgui-patched.exe`
+
+Aufbauend auf dem `set_Icon`-Patch aus Phase 1/2:
+
+| Methode | Patch | Grund |
+|---|---|---|
+| `Form.set_Icon` | `pop;pop` | libgdiplus `OutOfMemoryException` |
+| `WebBrowser.Navigate(string)` | `pop;pop` | kein Web-Login im AKC — läuft extern via HTTP |
+| `WebBrowser.set_ObjectForScripting(object)` | `pop;pop` | keine COM-Bridge unter Mono |
+
+### Container-Änderungen ggü. Diagnose-Image
+
+- Zusätzliche Pakete: `x11vnc`, optional `websockify` + `novnc`
+- Entrypoint startet `Xvfb` + `x11vnc` (+ optional noVNC), dann die Bridge
+- Exponierte Ports: **5900** (VNC) und **6080** (noVNC HTTP)
+- Image-Größe ~265 MB (statt ~190 MB Diagnose)
+
+### Status
+
+Architektur in der Entwicklung mit Bridge v16 bestätigt: noVNC-Frontend zeigt den vollständigen AKC-KVM-Viewer (Menüs, Toolbar, Statusleiste) gegen eine echte DKX2. Offen ist die Produktiv-Härtung (Dockerfile, Entrypoint, Build-Skript, Multi-Port-Handling).
