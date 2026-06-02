@@ -57,6 +57,17 @@ class Bridge
         log = LogManager.GetLogger(typeof(Bridge));
         log.Info("=== Bridge v17 starting (AKC + Port-Discovery + Control API :8081) ===");
 
+        // UI-Thread-Exceptions abfangen, statt den Prozess zu beenden. Wird der KVM-Viewer
+        // (KxGui.s) per Menü geschlossen, wirft die RcCore-Render-Dispose-Kaskade
+        // (Render.g.d -> ... -> Component.Dispose) eine Exception; ohne Handler propagiert
+        // die aus Application.Run() heraus und der Container stirbt mit exit 1.
+        // Muss vor dem ersten Fenster-Handle gesetzt werden.
+        Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+        Application.ThreadException += (s, e) =>
+            log.Error("UI-thread exception (swallowed, bridge stays up): " + e.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+            log.Error("AppDomain unhandled exception: " + (e.ExceptionObject as Exception));
+
         string host = args.Length > 0 ? args[0] : null;
         int port    = args.Length > 1 ? int.Parse(args[1]) : 443;
         string user = args.Length > 2 ? args[2] : "admin";
@@ -147,6 +158,21 @@ class Bridge
         // KVM-Viewer (KxGui.s) öffnet sich auf 410x320 Default-Größe — Mitte vom 1920x1080-Display.
         // Timer im UI-Thread maximiert alle Forms die AKC im Lauf öffnet (KxGui.s erscheint
         // nach Connect; auch evtl. neue Forms nach Port-Switch).
+        // FormClosing-Guard: verhindert, dass ein versehentlicher Menü-Klick per noVNC
+        // den KVM-Viewer (oder mainForm) schließt und damit die RcCore-Dispose-Kaskade
+        // auslöst. Prozess-Shutdown läuft über SIGTERM (docker stop), nicht über Close().
+        // Nur das Hauptfenster und den KVM-Viewer (KxGui.s) gegen Close schützen.
+        // AKC-Dialoge (z.B. KxGui.Dialogs.*) MÜSSEN normal schließbar bleiben — viele
+        // sind modal (ShowDialog) und würden sonst den UI-Thread dauerhaft blockieren.
+        FormClosingEventHandler closeGuard = (cs, ce) => {
+            var f = (Form)cs;
+            bool isViewer = ReferenceEquals(f, mainForm)
+                         || f.GetType().FullName == "Com.Raritan.KxGui.s";
+            if (!isViewer) return;
+            ce.Cancel = true;
+            log.Warn($"blocked Form.Close() on {f.GetType().FullName} (noVNC menu click?)");
+        };
+
         var maximizeTimer = new System.Windows.Forms.Timer { Interval = 500 };
         maximizeTimer.Tick += (s, e) => {
             foreach (Form f in Application.OpenForms) {
@@ -154,6 +180,9 @@ class Bridge
                     try { f.WindowState = FormWindowState.Maximized; }
                     catch { }
                 }
+                // idempotent: erst abhängen, dann anhängen — verhindert Mehrfach-Registrierung
+                try { f.FormClosing -= closeGuard; f.FormClosing += closeGuard; }
+                catch { }
             }
         };
         maximizeTimer.Start();

@@ -14,6 +14,7 @@ DISPLAY_NUM=99
 export DISPLAY=":${DISPLAY_NUM}"
 
 XVFB_PID=""
+FLUXBOX_PID=""
 X11VNC_PID=""
 WS_PID=""
 
@@ -21,9 +22,10 @@ log() { echo "[$(date -Iseconds)] $*"; }
 
 cleanup() {
     log "shutting down…"
-    [ -n "$WS_PID" ]     && kill "$WS_PID"     2>/dev/null
-    [ -n "$X11VNC_PID" ] && kill "$X11VNC_PID" 2>/dev/null
-    [ -n "$XVFB_PID" ]   && kill "$XVFB_PID"   2>/dev/null
+    [ -n "$WS_PID" ]      && kill "$WS_PID"      2>/dev/null
+    [ -n "$X11VNC_PID" ]  && kill "$X11VNC_PID"  2>/dev/null
+    [ -n "$FLUXBOX_PID" ] && kill "$FLUXBOX_PID" 2>/dev/null
+    [ -n "$XVFB_PID" ]    && kill "$XVFB_PID"    2>/dev/null
     wait 2>/dev/null
 }
 trap cleanup EXIT
@@ -70,6 +72,17 @@ for i in $(seq 1 50); do
 done
 log "Xvfb bereit (pid $XVFB_PID)"
 
+# ── Window-Manager (fluxbox) ──
+# Ohne WM bekommt das AKC-KVM-Fenster keinen X-Input-Focus: x11vnc spritzt Tastatur-
+# Events via XTEST ein, die ohne fokussiertes Fenster verworfen werden. Erst der WM
+# aktiviert/fokussiert das Fenster, damit Maus UND Tastatur an AKC durchgereicht und
+# zum Zielrechner weitergeleitet werden.
+log "starte fluxbox (window manager)"
+fluxbox > "$LOG_DIR/fluxbox.log" 2>&1 &
+FLUXBOX_PID=$!
+sleep 0.5
+log "fluxbox bereit (pid $FLUXBOX_PID)"
+
 # ── x11vnc (optional passwortgeschützt) ──
 VNC_AUTH=(-nopw)
 if [ -n "${VNC_PASSWORD}" ]; then
@@ -80,7 +93,12 @@ else
     log "x11vnc OHNE Auth (VNC_PASSWORD nicht gesetzt)"
 fi
 log "starte x11vnc → Port 5900"
+# -xkb -add_keysyms: Xvfb hat eine lückenhafte Keymap. Ohne diese Flags kann x11vnc
+# die vom VNC-Client gesendeten Keysyms nicht auf Keycodes mappen -> es entsteht gar
+# kein X-KeyEvent, AKC sieht die Taste nie (Maus geht trotzdem, da pointer-basiert).
+# -add_keysyms legt fehlende Keysyms zur Laufzeit auf freie Keycodes.
 x11vnc -display ":${DISPLAY_NUM}" -forever -shared -rfbport 5900 \
+    -xkb -add_keysyms \
     "${VNC_AUTH[@]}" -o "$LOG_DIR/x11vnc.log" -quiet &
 X11VNC_PID=$!
 

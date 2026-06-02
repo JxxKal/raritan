@@ -35,6 +35,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         mono-mcs \
         xvfb \
         xauth \
+        fluxbox \
         x11vnc \
         websockify \
         novnc \
