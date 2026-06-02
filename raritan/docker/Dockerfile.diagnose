@@ -1,0 +1,55 @@
+FROM debian:bookworm-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        mono-complete \
+        libgdiplus \
+        ca-certificates \
+        xvfb \
+        x11vnc \
+        xauth \
+        fluxbox \
+        gcc \
+        libc6-dev \
+        procps \
+        iproute2 \
+        iputils-ping \
+        netcat-openbsd \
+        x11-utils \
+        tini \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+COPY stubs/winstub.c stubs/SystemDeployment.cs stubs/CecilPatch.cs /build/
+
+COPY app/ /opt/akc/
+
+RUN gcc -shared -fPIC -O2 -Wall -o /opt/akc/libwinstub.so /build/winstub.c
+
+RUN mcs -target:library -out:/opt/akc/System.Deployment.dll /build/SystemDeployment.cs
+
+RUN MONO_CECIL=$(find /usr/lib/mono/gac/Mono.Cecil -name Mono.Cecil.dll | sort -V | tail -1) && \
+    echo "Using Cecil: $MONO_CECIL" && \
+    mcs -r:"$MONO_CECIL" -out:/build/CecilPatch.exe /build/CecilPatch.cs && \
+    cp "$MONO_CECIL" /build/ && \
+    mono /build/CecilPatch.exe /opt/akc/kxgui.exe /opt/akc/kxgui-patched.exe
+
+RUN printf '%s\n' \
+    '<configuration>' \
+    '  <dllmap dll="urlmon.dll" target="libwinstub.so" />' \
+    '  <dllmap dll="wininet.dll" target="libwinstub.so" />' \
+    '  <dllmap dll="shell32.dll" target="libwinstub.so" />' \
+    '</configuration>' \
+    > /opt/akc/core.dll.config
+
+COPY docker/entrypoint-diagnose.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENV RARITAN_IP=""
+ENV IDLE_SECONDS=600
+ENV DISPLAY=:99
+EXPOSE 5900
+
+WORKDIR /opt/akc
+ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]

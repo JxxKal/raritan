@@ -1,0 +1,8 @@
+akc-extracted/
+runtime-logs/
+*.tar
+*.tar.gz
+.git/
+stubs/*.exe
+stubs/*.dll
+stubs/*.so

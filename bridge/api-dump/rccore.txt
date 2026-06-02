@@ -1,0 +1,2211 @@
+# rccore, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+
+
+// ====== namespace Com.Raritan.RcCore ======
+
+public class a
+{
+    public a(string A_0, string A_1, string A_2, a.a A_3, a.b A_4, bool A_5);
+    public a(string A_0, string A_1, string A_2, a.a A_3, a.b A_4);
+    public a(a A_0);
+    public string PortNo { get; }
+    public string UniquePortId { get; }
+    public string PortName { get; }
+    public bool VmPortType { get; }
+    public a.a KvmPermission { get; }
+    public a.b VmPermission { get; }
+    public int d();
+    public string e();
+
+    public enum a.a : IComparable, IConvertible, IFormattable
+    {
+        a = 0,
+        b = 1,
+        c = 2,
+    }
+
+    public enum a.b : IComparable, IConvertible, IFormattable
+    {
+        a = 0,
+        b = 1,
+        c = 2,
+    }
+}
+
+public class b
+{
+    public b(int A_0, string A_1, string A_2, bool A_3);
+    public bool a(object A_0);
+    public int f();
+    public string d();
+}
+
+public class c
+{
+    public c(bool A_0, int A_1, bool A_2, Nullable<Keys> A_3);
+    public c(bool A_0, int A_1, bool A_2);
+    public c(int A_0, bool A_1);
+    public c(Keys A_0, bool A_1);
+    public c(int A_0);
+    public c(bool A_0, int A_1);
+    public c(c A_0);
+}
+
+public class d
+{
+    public static int a;
+    public static int b;
+    public static int c;
+    public static int d;
+    public d(string A_0, string A_1, List<c> A_2, bool A_3);
+    public d(string A_0, string A_1, bool A_2);
+    public d(string A_0, bool A_1);
+    public d(string A_0);
+    public d(string A_0, string A_1, string A_2);
+    public d(d A_0);
+    public void a(c A_0);
+    public void a(int A_0, bool A_1);
+    public void b(int A_0);
+    public void a(Keys A_0, bool A_1);
+    public void a(Keys A_0);
+    public void b(IEnumerable<c> A_0);
+    public void a(Char A_0);
+    public void a(string A_0);
+    public void a(int A_0);
+    public void i();
+    public string f();
+}
+
+public class e : List<f>, IReadOnlyList<f>, IEnumerable, IList, IEnumerable<f>, ICollection, IList<f>, IReadOnlyCollection<f>, ICollection<f>
+{
+    public e();
+    public e(IEnumerable<f> A_0);
+    public void a(int A_0, KeyEventArgs A_1, bool A_2, bool A_3);
+    public void a(int A_0, KeyEventArgs A_1);
+}
+
+public class f
+{
+    public static Keys a;
+    public f(int A_0, KeyEventArgs A_1, bool A_2, bool A_3);
+}
+
+public class g : List<c>, IReadOnlyList<c>, IEnumerable, IList, IEnumerable<c>, ICollection, IList<c>, IReadOnlyCollection<c>, ICollection<c>
+{
+    public g();
+    public g(IEnumerable<c> A_0);
+    public g(Char A_0);
+    public g(string A_0);
+    public void a(int A_0, bool A_1);
+    public void b(int A_0);
+    public void a(Keys A_0, bool A_1);
+    public void a(Keys A_0);
+    public void a(int A_0);
+    public void a(IEnumerable<c> A_0);
+}
+
+public static class h
+{
+
+    public class h.b : MulticastDelegate, ISerializable, ICloneable
+    {
+        public b(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, int A_1, bool A_2);
+        public IAsyncResult BeginInvoke(object A_0, int A_1, bool A_2, AsyncCallback A_3, object A_4);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class h.a : MulticastDelegate, ISerializable, ICloneable
+    {
+        public a(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, int A_1);
+        public IAsyncResult BeginInvoke(object A_0, int A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+}
+
+public class i
+{
+    public i();
+    public i(i A_0);
+    public string a();
+
+    public abstract class i.h
+    {
+    }
+
+    public class i.g : i.h
+    {
+        public string a();
+    }
+
+    public class i.b : i.h
+    {
+        public string b();
+    }
+
+    public abstract class i.e : i.h
+    {
+        protected int a;
+        public string d();
+    }
+
+    public class i.c : i.e
+    {
+    }
+
+    public class i.f : i.e
+    {
+    }
+
+    public class i.d : i.f
+    {
+    }
+}
+
+
+// ====== namespace Com.Raritan.RcCore.Impl ======
+
+internal class Impl.a
+{
+    public a();
+    public static CultureInfo a(string A_0);
+    public static CultureInfo a(CultureInfo A_0);
+}
+
+internal interface Impl.b
+{
+    public void a();
+}
+
+internal class Impl.c : k, ICloneable
+{
+    public c();
+    public void a(b A_0, bool A_1, bool A_2);
+    public int b();
+    public object c();
+}
+
+internal class Impl.d : Impl.g, l, IDisposable
+{
+    public d(ILog A_0, Control A_1);
+    public Panel f();
+}
+
+internal class Impl.e : Core.Impl.a
+{
+    public e(ILog A_0, RemoteCertificateValidationCallback A_1, Impl.g A_2);
+    public void a(string A_0, int A_1, bool A_2);
+    public void a();
+}
+
+internal class Impl.f : Impl.g, l, IDisposable
+{
+    public f(ILog A_0, Control A_1);
+}
+
+internal abstract class Impl.g : Core.Impl.k, l, IDisposable
+{
+    protected Impl.Render.c e;
+    public g(ILog A_0, Control A_1);
+    public static l a(ILog A_0, Control A_1, out Panel A_2);
+    public static l b(ILog A_0, Control A_1, out Panel A_2);
+    public static l a(ILog A_0, Control A_1);
+    public void d();
+    public bool q();
+    public bool a0();
+    public List<o.c> bf();
+    public List<o.ColorDepth> aw();
+    public List<o.Compression> be();
+    public bool bh();
+    public bool as();
+    public o.ColorDepth ao();
+    public o.Compression x();
+    public bool a9();
+    public bool au();
+    public bool m();
+    public bool w();
+    public bool ad();
+    public i a8();
+    public Size al();
+    public bool aq();
+    public List<o.e> am();
+    public o.e ak();
+    public bool v();
+    public bool a5();
+    public bool p();
+    public List<d> n();
+    public CultureInfo j();
+    public CultureInfo t();
+    public List<o.d> ac();
+    public bool ah();
+    public bool l();
+    public bool h();
+    public int a4();
+    public bool an();
+    public List<j> af();
+    public k g();
+    public m c(m A_0);
+    public r bc();
+    public uint y();
+    public int av();
+    public bool ba();
+    public bool r();
+    public bool a1();
+    public bool u();
+    public string ar();
+    public string k();
+    public int ae();
+    public int at();
+    public int a6();
+    public bool az();
+    public bool bg();
+    public bool j(string A_0);
+    public Dictionary<string,bool> bl();
+    public bool bk();
+    public x bn();
+    public x bm();
+    public bool bb();
+    public Bitmap o();
+    public void a(out Double A_0, out Double A_1);
+    public void a(out bool A_0, out bool A_1);
+    public void a(Double A_0, Double A_1);
+    public void a(bool A_0, bool A_1, Size A_2);
+    public o.b z();
+    public void a(o.b A_0);
+    public o.Smoothing ai();
+    public void a(o.Smoothing A_0);
+    public void ac(bool A_0);
+    public void z(bool A_0);
+    public void g(bool A_0);
+    public void aj(bool A_0);
+    public void a(string A_0, int A_1, bool A_2);
+    public void a(string A_0, int A_1);
+    public bool bd();
+    public void h(bool A_0);
+    public void a(o.a A_0);
+    public void a(string A_0, KeyEventArgs A_1);
+    public void a(e A_0);
+    public List<CultureInfo> ap();
+    public void d(CultureInfo A_0);
+    public void a(d A_0, bool A_1);
+    public void ag();
+    public void c(o.c A_0);
+    public void a(o.ColorDepth A_0, bool A_1);
+    public void a(o.Compression A_0, bool A_1);
+    public void a(bool A_0, bool A_1);
+    public List<o.ColorDepth> b(o.Compression A_0);
+    public List<o.Compression> b(o.ColorDepth A_0);
+    public o.ColorDepth d(o.c A_0);
+    public o.Compression b(o.c A_0);
+    public bool a(o.c A_0);
+    public void a3();
+    public void s();
+    public void c(i A_0);
+    public void i();
+    public void aj();
+    public void ay();
+    public void a2();
+    public void a7();
+    public void ax();
+    public void bi();
+    public void ab();
+    public void b(o.e A_0);
+    public void a(bool A_0, int A_1, int A_2, uint A_3);
+    public void a(uint A_0, bool A_1);
+    public void b(List<d> A_0);
+    public void g(CultureInfo A_0);
+    public void ad(bool A_0);
+    public void g(int A_0);
+    public void a(j A_0);
+    public void c(string A_0);
+    public void y(bool A_0);
+    public void ah(bool A_0);
+    public void h(string A_0);
+    public void a(Dictionary<o.g,string> A_0);
+    public void a(string A_0, int A_1, bool A_2, string A_3, string A_4, string A_5);
+    public void a(string A_0, int A_1, bool A_2, string A_3, string A_4, string A_5, bool A_6);
+    public void a(string A_0, int A_1, bool A_2, string A_3, string A_4);
+    public void j(bool A_0);
+    public string b(r A_0);
+    public void b(uint A_0);
+    public void h(int A_0);
+    public void aa(bool A_0);
+    public void ak(bool A_0);
+    public void ay(bool A_0);
+    public void ag(bool A_0);
+    public void f(CultureInfo A_0);
+    public void f(string A_0);
+    public void e(string A_0);
+    public void l(int A_0);
+    public void i(int A_0);
+    public void j(int A_0);
+    public void d(string A_0);
+    public void g(string A_0);
+    public void at(bool A_0);
+    public void az(bool A_0);
+    public void b(string A_0, bool A_1);
+    public void a(int A_0, bool A_1);
+    public void k(int A_0);
+    public void c(List<d> A_0);
+    public void e(CultureInfo A_0);
+    public void h(CultureInfo A_0);
+    public void b(List<o.d> A_0);
+    public void am(bool A_0);
+    public void ai(bool A_0);
+    public void b(List<o.e> A_0);
+    public void c(o.e A_0);
+    public void af(bool A_0);
+    public void aw(bool A_0);
+    public void av(bool A_0);
+    public void ae(bool A_0);
+    public void al(bool A_0);
+    public void b(List<o.c> A_0);
+    public void b(List<o.ColorDepth> A_0);
+    public void b(List<o.Compression> A_0);
+    public void ao(bool A_0);
+    public void an(bool A_0);
+    public void c(o.ColorDepth A_0);
+    public void c(o.Compression A_0);
+    public void ap(bool A_0);
+    public void ab(bool A_0);
+    public void au(bool A_0);
+    public void as(bool A_0);
+    public void ax(bool A_0);
+    public void b(i A_0);
+    public void b(Size A_0);
+    public void a(string A_0, bool A_1);
+    public void a(Rectangle A_0);
+    public void a(o.f A_0);
+    public void x(bool A_0);
+    public void ar(bool A_0);
+    public void f(int A_0);
+    public void aq(bool A_0);
+    public void b(List<j> A_0);
+    public void b(j A_0);
+    public void b(k A_0);
+    public void b(m A_0);
+    public void i(bool A_0);
+    public void a(x A_0, x A_1);
+}
+
+
+// ====== namespace Com.Raritan.RcCore.Impl.Keyboard ======
+
+internal static class Impl.Keyboard.a
+{
+    public static List<c> a(Char A_0);
+}
+
+internal static class Impl.Keyboard.b
+{
+    public static int a;
+    public static int a(int A_0, bool A_1);
+    public static int a(Keys A_0);
+    public static List<c> a(Char A_0);
+    public static List<c> a(string A_0);
+}
+
+internal interface Impl.Keyboard.c
+{
+    public void a(uint A_0, bool A_1);
+}
+
+internal class Impl.Keyboard.d : IDisposable
+{
+    public d(ILog A_0, Impl.g A_1, Impl.Render.g A_2);
+    public void g();
+    public void f();
+    public void b(object A_0, EventArgs A_1);
+    public void d(object A_0, EventArgs A_1);
+    public void a(object A_0, KeyEventArgs A_1);
+    public void b(object A_0, KeyEventArgs A_1);
+    public void a(object A_0, EventArgs A_1);
+    public void c(object A_0, EventArgs A_1);
+    public bool a(IntPtr A_0);
+    public void a(string A_0, KeyEventArgs A_1);
+    public void a(string A_0, string A_1);
+    public void a(e A_0);
+    public bool d();
+}
+
+internal static class Impl.Keyboard.e
+{
+    public static void a(ILog A_0);
+    public static void c();
+    public static void b(Impl.Keyboard.d A_0);
+    public static void a(Impl.Keyboard.d A_0);
+}
+
+internal static class Impl.Keyboard.f
+{
+    public static int a(Keys A_0);
+}
+
+internal static class Impl.Keyboard.g
+{
+    public static int a(int A_0, bool A_1);
+    public static int a(int A_0, int A_1);
+}
+
+
+// ====== namespace Com.Raritan.RcCore.Impl.Mouse ======
+
+internal class Impl.Mouse.a : Impl.Mouse.b, IDisposable
+{
+    public a(Impl.Render.g A_0, ILog A_1);
+    public void e();
+    public void d();
+    public void b(object A_0, EventArgs A_1);
+    public void a(object A_0, EventArgs A_1);
+    public void b(object A_0, MouseEventArgs A_1);
+    public void a(object A_0, MouseEventArgs A_1);
+    public void c(object A_0, MouseEventArgs A_1);
+    public void a(o.a A_0);
+    public void b();
+}
+
+internal abstract class Impl.Mouse.b : IDisposable
+{
+    public static int a;
+    public static int b;
+    public static int c;
+    public static int d;
+    public static int e;
+    protected int f;
+    protected Impl.Render.g g;
+    protected ILog h;
+    protected Point i;
+    protected int j;
+    public b(Impl.Render.g A_0, ILog A_1);
+    public void e();
+    public void Dispose();
+    public void d(object A_0, MouseEventArgs A_1);
+    public void b(object A_0, MouseEventArgs A_1);
+    public void a(object A_0, MouseEventArgs A_1);
+    public void c(object A_0, MouseEventArgs A_1);
+    public void b(object A_0, EventArgs A_1);
+    public void a(object A_0, EventArgs A_1);
+    public void a(o.a A_0);
+    public void b();
+}
+
+internal interface Impl.Mouse.c
+{
+    public void a(int A_0, int A_1, uint A_2);
+    public void b(int A_0, int A_1, uint A_2);
+    public void a(int A_0, uint A_1);
+    public void a(o.a A_0);
+}
+
+internal class Impl.Mouse.d : Impl.Mouse.b, IDisposable
+{
+    public d(Impl.Render.g A_0, ILog A_1, Impl.g A_2);
+    public void a(string A_0);
+    public void h();
+    public void j();
+    public void a(o.a A_0);
+    public void b();
+    public void b(object A_0, EventArgs A_1);
+    public void a(object A_0, EventArgs A_1);
+    public void b(object A_0, MouseEventArgs A_1);
+    public void a(object A_0, MouseEventArgs A_1);
+    public void c(object A_0, MouseEventArgs A_1);
+}
+
+
+// ====== namespace Com.Raritan.RcCore.Impl.Render ======
+
+internal class Impl.Render.a : Impl.Render.g, Impl.Render.c, IArrangedContainer, IDropTarget, IBindableComponent, IArrangedElement, IDisposable, ISynchronizeInvoke, IComponent, IWin32Window
+{
+    public a(ILog A_0, Impl.g A_1);
+}
+
+internal class Impl.Render.b : Impl.Render.d, IDisposable
+{
+    public b();
+    public void b();
+    public Rectangle a(Rectangle A_0, int[] A_1);
+    public Bitmap a(Rectangle A_0);
+}
+
+internal interface Impl.Render.c : IDisposable
+{
+    public void a();
+    public void l();
+    public Panel c();
+    public Bitmap d();
+    public Bitmap e();
+    public void a(Rectangle A_0, int[] A_1);
+    public void a(Size A_0);
+    public void a(string A_0, int A_1, bool A_2);
+    public void a(string A_0, int A_1);
+    public void a(Impl.b A_0);
+    public void a(Impl.Mouse.c A_0);
+    public void a(Impl.Keyboard.c A_0);
+    public Impl.Mouse.b f();
+    public Impl.Keyboard.d g();
+    public void a(bool A_0);
+    public void a(string A_0);
+    public void a(string A_0, string A_1);
+    public void b(bool A_0);
+    public void p(bool A_0);
+    public void c(bool A_0);
+    public void a(Color A_0);
+    public void b(Color A_0);
+    public void a(int A_0);
+    public void b(string A_0);
+    public void a(out Double A_0, out Double A_1);
+    public void a(out bool A_0, out bool A_1);
+    public void a(Double A_0, Double A_1);
+    public void a(bool A_0, bool A_1, Size A_2);
+    public o.b h();
+    public void a(o.b A_0);
+}
+
+internal abstract class Impl.Render.d : IDisposable
+{
+    protected static int a;
+    public void b();
+    public void a(int A_0, int A_1);
+    public Rectangle a(Rectangle A_0, int[] A_1);
+    public Bitmap a(Rectangle A_0);
+}
+
+internal class Impl.Render.e : Impl.Render.c, IDisposable
+{
+    protected object c;
+    protected Impl.Render.d d;
+    protected Size e;
+    public e();
+    public void f();
+    public void l();
+    public void a();
+    public void a(Rectangle A_0, int[] A_1);
+    public void a(Size A_0);
+    public Bitmap j();
+    public Panel c();
+    public void a(string A_0, int A_1, bool A_2);
+    public void a(string A_0, int A_1);
+    public void c(bool A_0);
+    public void b(string A_0);
+    public void a(string A_0, string A_1);
+    public void b(bool A_0);
+    public void d(bool A_0);
+    public void a(bool A_0);
+    public void b(Color A_0);
+    public void a(Color A_0);
+    public void a(int A_0);
+    public void a(string A_0);
+    public void a(out Double A_0, out Double A_1);
+    public void a(out bool A_0, out bool A_1);
+    public void a(Double A_0, Double A_1);
+    public void a(bool A_0, bool A_1, Size A_2);
+    public o.b g();
+    public void a(o.b A_0);
+    public Bitmap e();
+    public Impl.Mouse.b b();
+    public Impl.Keyboard.d h();
+    public void a(Impl.b A_0);
+    public void a(Impl.Mouse.c A_0);
+    public void a(Impl.Keyboard.c A_0);
+}
+
+internal class Impl.Render.f : Impl.Render.h, IDisposable
+{
+    public f(Impl.Render.g A_0);
+}
+
+internal abstract class Impl.Render.g : Control, Impl.Render.c, IArrangedContainer, IDropTarget, IBindableComponent, IArrangedElement, IDisposable, ISynchronizeInvoke, IComponent, IWin32Window
+{
+    protected ILog a;
+    protected Impl.g b;
+    protected Impl.b d;
+    protected object i;
+    protected Size j;
+    protected Impl.Render.d l;
+    protected Impl.Render.h m;
+    protected o.b w;
+    public void i();
+    public void q();
+    public void t();
+    public o.b d();
+    public void a(o.b A_0);
+    public Panel f();
+    public Bitmap h();
+    public Bitmap r();
+    public void a(Impl.b A_0);
+    public void a(Impl.Mouse.c A_0);
+    public Impl.Mouse.c m();
+    public void a(Impl.Keyboard.c A_0);
+    public Impl.Keyboard.c o();
+    public Impl.Mouse.b g();
+    public void l();
+    public void j();
+    public void a(bool A_0);
+    public void b(string A_0);
+    public void a(string A_0, string A_1);
+    public Impl.Keyboard.d k();
+    public void c(bool A_0);
+    public void e(bool A_0);
+    public void b(bool A_0);
+    public void b(Color A_0);
+    public void a(Color A_0);
+    public void a(int A_0);
+    public void a(string A_0);
+    public void a(string A_0, int A_1, bool A_2);
+    public void a(string A_0, int A_1);
+    public void a(Nullable<Rectangle> A_0);
+    public void e();
+    public Size GetPreferredSize(Size proposedSize);
+    public void a(Rectangle A_0, int[] A_1);
+    public void c(Size A_0);
+    public void a(out Double A_0, out Double A_1);
+    public void a(out bool A_0, out bool A_1);
+    public void a(Double A_0, Double A_1);
+    public void a(bool A_0, bool A_1, Size A_2);
+    public void a(ref int A_0, ref int A_1);
+}
+
+internal abstract class Impl.Render.h : IDisposable
+{
+    protected Impl.Render.g d;
+    protected bool l;
+    protected Bitmap p;
+    protected object s;
+    public void f();
+    public void b();
+    public void b(Color A_0);
+    public void a(Color A_0);
+    public void c(int A_0);
+    public void a(Impl.Render.h.a A_0);
+    public void a(string A_0);
+    public bool c();
+    public bool d();
+    public void a(string A_0, int A_1, bool A_2, int A_3);
+    public void b(int A_0);
+    public void a(Graphics A_0, Size A_1);
+
+    public enum Impl.Render.h.a : IComparable, IConvertible, IFormattable
+    {
+        a = 0,
+        b = 1,
+        c = 2,
+    }
+}
+
+
+// ====== namespace Com.Raritan.RcCore.Impl.Rfb ======
+
+internal class Impl.Rfb.a
+{
+    public static Impl.Rfb.a a;
+    public static Impl.Rfb.a b;
+    public bool a(object A_0);
+    public int k();
+    public static Impl.Rfb.a a(int A_0, int A_1, bool A_2, bool A_3, int A_4, int A_5, int A_6, int A_7, int A_8, int A_9);
+}
+
+internal class Impl.Rfb.b : Impl.Rfb.i, Impl.b, Impl.Keyboard.c, IDisposable, Impl.Mouse.c
+{
+    public b();
+}
+
+public class Impl.Rfb.c : Core.g
+{
+    public c(int A_0, int A_1);
+    public c(int A_0, int A_1, bool A_2, string A_3);
+    public Core.g a();
+    public string b();
+    public static string a(int A_0);
+}
+
+internal abstract class Impl.Rfb.d
+{
+    protected Impl.Rfb.i a;
+    protected i b;
+    public d(Impl.Rfb.i A_0);
+    public void b(i A_0);
+    public void h();
+    public void i();
+    public void a(i A_0);
+    public void c();
+    public void b();
+    public void e();
+    public void a();
+    public void f();
+    public void g();
+    public void d();
+}
+
+internal abstract class Impl.Rfb.e
+{
+    protected ILog a;
+    protected Impl.g b;
+    protected bool c;
+    public e(ILog A_0, Impl.g A_1);
+    public void b(bool A_0);
+    public List<o.c> c();
+    public List<o.ColorDepth> b();
+    public List<o.Compression> a();
+    public List<o.ColorDepth> a(o.Compression A_0);
+    public List<o.Compression> b(o.ColorDepth A_0);
+    public o.ColorDepth b(o.c A_0);
+    public o.Compression a(o.c A_0);
+    public bool d(o.c A_0);
+    public void a(o.ColorDepth A_0);
+    public void b(o.Compression A_0);
+    public void a(bool A_0);
+    public void c(o.c A_0);
+    public void e();
+    public void c(string A_0);
+    public void a(string A_0);
+    public void d(string A_0);
+    public void b(string A_0);
+    public uint[] f();
+    public Impl.Rfb.a d();
+}
+
+
+// ====== namespace Com.Raritan.RcCore.Impl.Rfb.Encodings ======
+
+internal abstract class Impl.Rfb.Encodings.a : IDisposable
+{
+    protected ILog c;
+    protected Impl.Rfb.i d;
+    protected int[] g;
+    public a(ILog A_0, Impl.Rfb.i A_1);
+    public void a();
+    public int[] a(Core.Impl.e A_0, uint A_1, uint A_2, Rectangle A_3, Size A_4, Size A_5, Impl.Rfb.a A_6);
+}
+
+internal class Impl.Rfb.Encodings.b : Impl.Rfb.Encodings.a, IDisposable
+{
+    public b(ILog A_0, Impl.Rfb.i A_1);
+    public void a();
+    public int[] a(Core.Impl.e A_0, uint A_1, uint A_2, Rectangle A_3, Size A_4, Size A_5, Impl.Rfb.a A_6);
+}
+
+
+// ====== namespace Com.Raritan.RcCore.Impl.Rfb ======
+
+internal class Impl.Rfb.f
+{
+    public f(ILog A_0);
+    public void a();
+}
+
+internal class Impl.Rfb.g
+{
+    public g();
+}
+
+internal abstract class Impl.Rfb.h : Core.Impl.o
+{
+}
+
+internal abstract class Impl.Rfb.i : Core.Impl.h, Impl.b, Impl.Keyboard.c, IDisposable, Impl.Mouse.c
+{
+    protected Impl.Rfb.Pdu.aq a;
+    protected Impl.Rfb.Pdu.q b;
+    protected Impl.Rfb.Pdu.q c;
+    protected Impl.Rfb.Pdu.s d;
+    protected Impl.Rfb.Pdu.ao e;
+    protected Impl.Rfb.Pdu.m f;
+    protected Impl.Rfb.Pdu.x g;
+    protected Impl.Rfb.Pdu.ae h;
+    protected Impl.Rfb.Pdu.al i;
+    protected Impl.Rfb.Pdu.ad j;
+    protected Impl.Rfb.Pdu.ad k;
+    protected Impl.Rfb.Pdu.c l;
+    protected Impl.Rfb.Pdu.ai m;
+    protected Impl.Rfb.Pdu.ap n;
+    protected Impl.Rfb.Pdu.ah o;
+    protected Impl.Rfb.Pdu.an p;
+    protected Impl.Rfb.Pdu.o q;
+    protected Impl.Rfb.Pdu.v r;
+    protected Impl.Rfb.Pdu.u s;
+    protected Impl.Rfb.Pdu.g t;
+    protected Impl.Rfb.Pdu.g u;
+    protected Impl.Rfb.Pdu.ak v;
+    protected Impl.Rfb.Pdu.ak w;
+    protected Impl.Rfb.Pdu.p x;
+    protected Impl.Rfb.Pdu.y y;
+    protected Impl.Rfb.Pdu.r z;
+    protected Impl.Rfb.Pdu.ar aa;
+    protected Impl.Rfb.Pdu.j ab;
+    protected Impl.Rfb.Pdu.a ac;
+    protected Impl.Rfb.Pdu.w ad;
+    protected Impl.Rfb.Pdu.aj ae;
+    protected Impl.Rfb.Pdu.k af;
+    protected Impl.Rfb.Pdu.ab ag;
+    protected Impl.Rfb.Pdu.am ah;
+    protected Impl.Rfb.Pdu.e ai;
+    protected Impl.Rfb.Pdu.l aj;
+    protected Impl.Rfb.Pdu.ag ak;
+    protected Impl.Rfb.Pdu.h al;
+    protected Impl.Rfb.Pdu.n am;
+    protected Impl.Rfb.Pdu.z an;
+    protected Impl.Rfb.Pdu.af ao;
+    protected Impl.Rfb.Pdu.i ap;
+    protected Impl.Rfb.Pdu.aa aq;
+    protected Impl.Rfb.Pdu.ac ar;
+    protected Impl.Rfb.Pdu.d as;
+    protected Impl.Rfb.Pdu.f at;
+    protected Impl.Rfb.Pdu.t au;
+    protected Impl.Rfb.Pdu.b av;
+    protected Impl.Rfb.Pdu.as az;
+    protected Size aw;
+    protected Size ax;
+    protected bool a0;
+    protected bool a1;
+    protected bool a2;
+    protected bool a3;
+    protected bool a4;
+    protected bool a5;
+    protected uint a6;
+    protected uint a7;
+    protected int a8;
+    protected uint bf;
+    protected byte[] bg;
+    protected o.e bh;
+    protected r bk;
+    protected Impl.g bl;
+    protected Impl.Render.c bm;
+    protected Core.Impl.e bo;
+    protected Core.Impl.e bp;
+    protected Impl.Rfb.a bq;
+    protected Impl.Rfb.e br;
+    protected Impl.Rfb.d bs;
+    protected Impl.Rfb.f bt;
+    protected Impl.Rfb.Encodings.a bu;
+    protected Dictionary<o.g,string> ay;
+    public void b(Core.Impl.a A_0, ILog A_1, Impl.g A_2, Impl.Render.c A_3);
+    public void h();
+    public void a(Dictionary<o.g,string> A_0);
+    public void bc();
+    public void b(int A_0, int A_1, uint A_2);
+    public void a(int A_0, int A_1, uint A_2);
+    public void a(int A_0, uint A_1);
+    public void a(o.a A_0);
+    public void a(uint A_0, bool A_1);
+    public int az();
+    public void a(string A_0, uint A_1, uint A_2);
+    public void c(string A_0);
+    public void c(uint A_0);
+    public void a(uint A_0, int A_1);
+}
+
+
+// ====== namespace Com.Raritan.RcCore.Impl.Rfb.Pdu ======
+
+internal abstract class Impl.Rfb.Pdu.a : Impl.Rfb.h
+{
+    protected Rectangle a;
+    public void a(int A_0, int A_1, int A_2, int A_3);
+}
+
+internal abstract class Impl.Rfb.Pdu.aa : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.ab : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.ac : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.ad : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.ae : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.af : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.ag : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.ah : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.ai : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.aj : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.ak : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.al : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.am : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.an : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.ao : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.ap : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.aq : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.ar : Impl.Rfb.h
+{
+    public uint[] a;
+}
+
+internal class Impl.Rfb.Pdu.as : Impl.Rfb.h
+{
+    public as();
+}
+
+internal abstract class Impl.Rfb.Pdu.b : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.c : Impl.Rfb.h
+{
+    public List<KeyValuePair<string,string>> a;
+}
+
+internal abstract class Impl.Rfb.Pdu.d : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.e : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.f : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.g : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.h : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.i : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.j : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.k : Impl.Rfb.h
+{
+    protected int a;
+    protected int b;
+    protected int c;
+    protected uint d;
+    public void a(int A_0, int A_1, int A_2, uint A_3);
+}
+
+internal abstract class Impl.Rfb.Pdu.l : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.m : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.n : Impl.Rfb.h
+{
+    protected bool a;
+    protected bool b;
+    protected bool c;
+    public void a(bool A_0, bool A_1, bool A_2);
+}
+
+internal abstract class Impl.Rfb.Pdu.o : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.p : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.q : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.r : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.s : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.t : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.u : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.v : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.w : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.x : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.y : Impl.Rfb.h
+{
+}
+
+internal abstract class Impl.Rfb.Pdu.z : Impl.Rfb.h
+{
+}
+
+
+// ====== namespace Com.Raritan.RcCore.Impl.Rfb.V01_00 ======
+
+internal class Impl.Rfb.V01_00.a : Impl.Rfb.Pdu.aq
+{
+    public a();
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_00.b : Impl.Rfb.Pdu.q
+{
+    public b();
+    public void b(Core.Impl.e A_0);
+    public void a(Core.Impl.c A_0);
+}
+
+
+// ====== namespace Com.Raritan.RcCore.Impl.Rfb.V01_28 ======
+
+internal class Impl.Rfb.V01_28.a : Impl.Rfb.Pdu.e
+{
+    public a();
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.aa : Impl.Rfb.Pdu.an
+{
+    public aa();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.ab : Impl.Rfb.Pdu.ap
+{
+    public ab();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.ac : Impl.Rfb.Pdu.l
+{
+    public ac();
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.ad : Impl.Rfb.Pdu.n
+{
+    public ad();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.ae : Impl.Rfb.Pdu.x
+{
+    public ae();
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.af : Impl.Rfb.Pdu.ac
+{
+    public af();
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.ag : Impl.Rfb.Pdu.ai
+{
+    public ag();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.ah : Impl.Rfb.Pdu.i
+{
+    public ah();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.ai : Impl.Rfb.Pdu.a
+{
+    public ai();
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.aj : Impl.Rfb.Pdu.ao
+{
+    public aj();
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.ak : Impl.Rfb.Pdu.t
+{
+    public ak();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.al : Impl.Rfb.Pdu.ag
+{
+    public al();
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.am : Impl.Rfb.Pdu.f
+{
+    public am();
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.an : Impl.Rfb.Pdu.o
+{
+    public an();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.ao : Impl.Rfb.Pdu.ak
+{
+    public ao();
+    public void a(Core.Impl.e A_0, bool A_1);
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.ap
+{
+    protected string h;
+    protected string i;
+    protected string j;
+    protected string k;
+    public ap(Impl.Rfb.i A_0, ILog A_1);
+    public void a(uint A_0, string A_1, string A_2, string A_3, string A_4);
+    public void a();
+    public void a(byte[] A_0);
+}
+
+internal class Impl.Rfb.V01_28.aq : Impl.Rfb.Pdu.af
+{
+    public aq();
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.ar : Impl.Rfb.Pdu.ae
+{
+    public ar();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.as : Impl.Rfb.Pdu.k
+{
+    public as();
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.b : Impl.Rfb.Pdu.z
+{
+    public b();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.c : Impl.Rfb.Pdu.v
+{
+    public c();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.d : Impl.Rfb.Pdu.g
+{
+    public d();
+    public void a(Core.Impl.e A_0, bool A_1);
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.e : Impl.Rfb.Pdu.p
+{
+    public e();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.f : Impl.Rfb.Pdu.am
+{
+    public f();
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.g : Impl.Rfb.Pdu.y
+{
+    public g();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.h : Impl.Rfb.Pdu.ah
+{
+    public h();
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.i : Impl.Rfb.Pdu.d
+{
+    public i();
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.j : Impl.Rfb.Pdu.m
+{
+    public j();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.k : Impl.Rfb.Pdu.w
+{
+    public k();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.l : Impl.Rfb.Pdu.ar
+{
+    public l();
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.m : Impl.Rfb.Pdu.u
+{
+    public m();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.n : Impl.Rfb.Pdu.r
+{
+    public n();
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.o : Impl.Rfb.Pdu.c
+{
+    public o();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.p : Impl.Rfb.Pdu.ab
+{
+    public p();
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.q : Impl.Rfb.Pdu.b
+{
+    public q();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.r : Impl.Rfb.Pdu.aj
+{
+    public r();
+    public void b(Core.Impl.e A_0);
+}
+
+internal class Impl.Rfb.V01_28.RfbHandlerV01_28 : Impl.Rfb.i, Impl.b, Impl.Keyboard.c, IDisposable, Impl.Mouse.c
+{
+    public RfbHandlerV01_28();
+    public void h();
+}
+
+internal class Impl.Rfb.V01_28.s : Impl.Rfb.Pdu.s
+{
+    public s();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.t : Impl.Rfb.Pdu.aa
+{
+    public t();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.u : Impl.Rfb.Pdu.al
+{
+    public u();
+    public void a(Core.Impl.e A_0, bool A_1);
+}
+
+internal class Impl.Rfb.V01_28.v : Impl.Rfb.Pdu.ad
+{
+    public v();
+    public void a(Core.Impl.e A_0, bool A_1);
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.w : Impl.Rfb.Pdu.j
+{
+    public w();
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.x : Impl.Rfb.e
+{
+    public x(ILog A_0, Impl.g A_1);
+    public List<o.c> c();
+    public List<o.ColorDepth> b();
+    public List<o.Compression> a();
+    public List<o.ColorDepth> a(o.Compression A_0);
+    public List<o.Compression> b(o.ColorDepth A_0);
+    public o.ColorDepth b(o.c A_0);
+    public o.Compression a(o.c A_0);
+    public bool d(o.c A_0);
+    public void c(o.c A_0);
+    public void e();
+    public void a(o.ColorDepth A_0);
+    public void a(bool A_0);
+    public void b(o.Compression A_0);
+    public void c(string A_0);
+    public void a(string A_0);
+    public void d(string A_0);
+    public void b(string A_0);
+    public uint[] f();
+    public Impl.Rfb.a d();
+}
+
+internal class Impl.Rfb.V01_28.y : Impl.Rfb.Pdu.h
+{
+    public y();
+    public void a(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_28.z : Impl.Rfb.d
+{
+    public z(Impl.Rfb.i A_0);
+    public void c();
+    public void b();
+    public void e();
+    public void a();
+    public void f();
+    public void g();
+    public void d();
+    public void a(i A_0);
+}
+
+
+// ====== namespace Com.Raritan.RcCore.Impl.Rfb.V01_29 ======
+
+internal class Impl.Rfb.V01_29.a : Impl.Rfb.Pdu.as
+{
+    public a();
+    public void b(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_29.b : Impl.Rfb.Pdu.ah
+{
+    public b();
+    public void b(Core.Impl.c A_0);
+}
+
+internal class Impl.Rfb.V01_29.RfbHandlerV01_29 : Impl.Rfb.i, Impl.b, Impl.Keyboard.c, IDisposable, Impl.Mouse.c
+{
+    public RfbHandlerV01_29();
+    public void b1();
+}
+
+
+// ====== namespace Com.Raritan.RcCore ======
+
+public class j
+{
+    public j(string A_0, string A_1);
+    public j(int A_0, int A_1, string A_2, string A_3, string A_4, string A_5);
+    public j(int A_0, int A_1, int A_2);
+    public j(j A_0);
+    public string e();
+}
+
+public abstract class k : ICloneable
+{
+    public k();
+    public void d();
+    public string f();
+    public object Clone();
+}
+
+public interface l : IDisposable
+{
+    public void a(RemoteCertificateValidationCallback A_0);
+    public void a(string A_0, int A_1, bool A_2, string A_3, string A_4, string A_5);
+    public void a(string A_0, int A_1, bool A_2, string A_3, string A_4, string A_5, bool A_6);
+    public void a(string A_0, int A_1, bool A_2, string A_3, string A_4);
+    public void i(bool A_0);
+    public bool b();
+    public bool c();
+    public List<o.c> d();
+    public List<o.ColorDepth> e();
+    public List<o.Compression> f();
+    public bool g();
+    public bool h();
+    public o.ColorDepth i();
+    public o.Compression j();
+    public bool k();
+    public void l();
+    public void a(o.c A_0);
+    public void a(o.ColorDepth A_0, bool A_1);
+    public void a(o.Compression A_0, bool A_1);
+    public void a(bool A_0, bool A_1);
+    public List<o.ColorDepth> a(o.Compression A_0);
+    public List<o.Compression> a(o.ColorDepth A_0);
+    public o.ColorDepth b(o.c A_0);
+    public o.Compression c(o.c A_0);
+    public bool d(o.c A_0);
+    public bool m();
+    public bool n();
+    public bool o();
+    public void p();
+    public void q();
+    public i r();
+    public void a(i A_0);
+    public void s();
+    public void t();
+    public void u();
+    public void v();
+    public void w();
+    public void x();
+    public void y();
+    public bool z();
+    public void aa();
+    public Size ac();
+    public bool ad();
+    public List<o.e> ae();
+    public o.e af();
+    public void a(o.e A_0);
+    public bool ag();
+    public bool ah();
+    public void a(bool A_0);
+    public void b(bool A_0);
+    public void bd(bool A_0);
+    public bool ai();
+    public void a(o.a A_0);
+    public void a(bool A_0, int A_1, int A_2, uint A_3);
+    public void a(uint A_0, bool A_1);
+    public void a(d A_0, bool A_1);
+    public List<o.d> aj();
+    public List<d> ak();
+    public void a(List<d> A_0);
+    public void c(bool A_0);
+    public void a(string A_0, KeyEventArgs A_1);
+    public void a(e A_0);
+    public CultureInfo al();
+    public void a(CultureInfo A_0);
+    public List<CultureInfo> am();
+    public CultureInfo an();
+    public void b(CultureInfo A_0);
+    public bool ao();
+    public void d(bool A_0);
+    public bool ap();
+    public bool aq();
+    public bool ar();
+    public int as();
+    public bool at();
+    public k au();
+    public m a(m A_0);
+    public void a(int A_0);
+    public List<j> av();
+    public void a(j A_0);
+    public r aw();
+    public void a(string A_0);
+    public bool bd();
+    public x bm();
+    public x bn();
+    public bool bl(string A_0);
+    public Dictionary<string,bool> bl();
+    public void a(out Double A_0, out Double A_1);
+    public void a(out bool A_0, out bool A_1);
+    public void a(Double A_0, Double A_1);
+    public void a(bool A_0, bool A_1, Size A_2);
+    public o.b ax();
+    public void a(o.b A_0);
+    public o.Smoothing ay();
+    public void a(o.Smoothing A_0);
+    public void a(string A_0, int A_1, bool A_2);
+    public void a(string A_0, int A_1);
+    public bool bj();
+    public void bj(bool A_0);
+    public uint az();
+    public bool a0();
+    public bool a1();
+    public void e(bool A_0);
+    public bool a2();
+    public bool a3();
+    public void f(bool A_0);
+    public int a4();
+    public Bitmap a5();
+    public void b(string A_0);
+    public bool a6();
+    public bool a7();
+    public void bd(Dictionary<o.g,string> A_0);
+    public int a8();
+    public int a9();
+    public int ba();
+    public string bb();
+    public string bc();
+}
+
+public class m : ICloneable
+{
+    public m();
+    public string a();
+    public void a(m.a A_0);
+    public object b();
+
+    public enum m.a : IComparable, IConvertible, IFormattable
+    {
+        a = 0,
+        b = 1,
+        c = 2,
+        d = 4,
+        f = 5,
+        e = 8,
+        g = 9,
+        h = 12,
+        i = 13,
+        j = 16,
+        k = 17,
+        l = 20,
+        m = 21,
+        n = 24,
+        o = 25,
+        p = 28,
+        q = 29,
+    }
+}
+
+public static class n
+{
+
+    public class n.b : MulticastDelegate, ISerializable, ICloneable
+    {
+        public b(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, bool A_1);
+        public IAsyncResult BeginInvoke(object A_0, bool A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class n.a : MulticastDelegate, ISerializable, ICloneable
+    {
+        public a(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, bool A_1);
+        public IAsyncResult BeginInvoke(object A_0, bool A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class n.f : MulticastDelegate, ISerializable, ICloneable
+    {
+        public f(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, int A_1);
+        public IAsyncResult BeginInvoke(object A_0, int A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class n.h : MulticastDelegate, ISerializable, ICloneable
+    {
+        public h(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, bool A_1);
+        public IAsyncResult BeginInvoke(object A_0, bool A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class n.c : MulticastDelegate, ISerializable, ICloneable
+    {
+        public c(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, List<j> A_1);
+        public IAsyncResult BeginInvoke(object A_0, List<j> A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class n.g : MulticastDelegate, ISerializable, ICloneable
+    {
+        public g(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, j A_1);
+        public IAsyncResult BeginInvoke(object A_0, j A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class n.e : MulticastDelegate, ISerializable, ICloneable
+    {
+        public e(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, k A_1);
+        public IAsyncResult BeginInvoke(object A_0, k A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class n.d : MulticastDelegate, ISerializable, ICloneable
+    {
+        public d(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, m A_1);
+        public IAsyncResult BeginInvoke(object A_0, m A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+}
+
+public static class o
+{
+
+    public enum o.ColorDepth : IComparable, IConvertible, IFormattable
+    {
+        COLOR_32_BIT = 0,
+        COLOR_24_BIT = 1,
+        COLOR_16_BIT = 2,
+        COLOR_8_BIT = 3,
+        COLOR_4_BIT = 4,
+        GREY_4_BIT = 5,
+        GREY_3_BIT = 6,
+        GREY_2_BIT = 7,
+        BW_1_BIT = 8,
+    }
+
+    public enum o.Compression : IComparable, IConvertible, IFormattable
+    {
+        VIDEO_OPTIMIZED = 0,
+        UNCOMPRESSED = 1,
+        LEVEL_1 = 2,
+        LEVEL_2 = 3,
+        LEVEL_3 = 4,
+        LEVEL_4 = 5,
+        LEVEL_5 = 6,
+        LEVEL_6 = 7,
+        LEVEL_7 = 8,
+        LEVEL_8 = 9,
+        LEVEL_9 = 10,
+    }
+
+    public enum o.c : IComparable, IConvertible, IFormattable
+    {
+        a = 0,
+        b = 1,
+        c = 2,
+        d = 3,
+        e = 4,
+        f = 5,
+        g = 6,
+        h = 7,
+        i = 8,
+        j = 9,
+        k = 10,
+    }
+
+    public enum o.d : IComparable, IConvertible, IFormattable
+    {
+        a = 0,
+        b = 1,
+        c = 2,
+    }
+
+    public enum o.e : IComparable, IConvertible, IFormattable
+    {
+        a = 0,
+        b = 1,
+        c = 2,
+    }
+
+    public enum o.a : IComparable, IConvertible, IFormattable
+    {
+        a = 0,
+        b = 1,
+        c = 2,
+    }
+
+    public enum o.b : IComparable, IConvertible, IFormattable
+    {
+        a = 0,
+        b = 1,
+        c = 2,
+        d = 3,
+    }
+
+    public enum o.Smoothing : IComparable, IConvertible, IFormattable
+    {
+        NONE = 0,
+        LOW = 1,
+        HIGH = 2,
+    }
+
+    public enum o.f : IComparable, IConvertible, IFormattable
+    {
+        a = 0,
+        b = 1,
+        c = 2,
+        d = 3,
+    }
+
+    public enum o.g : IComparable, IConvertible, IFormattable
+    {
+        a = 0,
+        b = 1,
+    }
+}
+
+public static class p
+{
+
+    public class p.a : MulticastDelegate, ISerializable, ICloneable
+    {
+        public a(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, List<d> A_1);
+        public IAsyncResult BeginInvoke(object A_0, List<d> A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class p.b : MulticastDelegate, ISerializable, ICloneable
+    {
+        public b(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, CultureInfo A_1);
+        public IAsyncResult BeginInvoke(object A_0, CultureInfo A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class p.e : MulticastDelegate, ISerializable, ICloneable
+    {
+        public e(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, CultureInfo A_1);
+        public IAsyncResult BeginInvoke(object A_0, CultureInfo A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class p.d : MulticastDelegate, ISerializable, ICloneable
+    {
+        public d(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, List<o.d> A_1);
+        public IAsyncResult BeginInvoke(object A_0, List<o.d> A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class p.c : MulticastDelegate, ISerializable, ICloneable
+    {
+        public c(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, bool A_1);
+        public IAsyncResult BeginInvoke(object A_0, bool A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+}
+
+public static class q
+{
+
+    public class q.c : MulticastDelegate, ISerializable, ICloneable
+    {
+        public c(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, bool A_1);
+        public IAsyncResult BeginInvoke(object A_0, bool A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class q.a : MulticastDelegate, ISerializable, ICloneable
+    {
+        public a(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, List<o.e> A_1);
+        public IAsyncResult BeginInvoke(object A_0, List<o.e> A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class q.e : MulticastDelegate, ISerializable, ICloneable
+    {
+        public e(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, o.e A_1);
+        public IAsyncResult BeginInvoke(object A_0, o.e A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class q.d : MulticastDelegate, ISerializable, ICloneable
+    {
+        public d(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, bool A_1);
+        public IAsyncResult BeginInvoke(object A_0, bool A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class q.f : MulticastDelegate, ISerializable, ICloneable
+    {
+        public f(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, bool A_1);
+        public IAsyncResult BeginInvoke(object A_0, bool A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class q.b : MulticastDelegate, ISerializable, ICloneable
+    {
+        public b(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, bool A_1);
+        public IAsyncResult BeginInvoke(object A_0, bool A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+}
+
+public class r : List<a>, IReadOnlyList<a>, IEnumerable, IList, IEnumerable<a>, ICollection, IList<a>, IReadOnlyCollection<a>, ICollection<a>
+{
+    public r();
+    public r(int A_0);
+    public r(IEnumerable<a> A_0);
+}
+
+public static class s
+{
+
+    public class s.k : MulticastDelegate, ISerializable, ICloneable
+    {
+        public k(object A_0, IntPtr A_1);
+        public string Invoke(object A_0, r A_1);
+        public IAsyncResult BeginInvoke(object A_0, r A_1, AsyncCallback A_2, object A_3);
+        public string EndInvoke(IAsyncResult A_0);
+    }
+
+    public class s.g : MulticastDelegate, ISerializable, ICloneable
+    {
+        public g(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, uint A_1);
+        public IAsyncResult BeginInvoke(object A_0, uint A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class s.c : MulticastDelegate, ISerializable, ICloneable
+    {
+        public c(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, int A_1);
+        public IAsyncResult BeginInvoke(object A_0, int A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class s.h : MulticastDelegate, ISerializable, ICloneable
+    {
+        public h(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, bool A_1);
+        public IAsyncResult BeginInvoke(object A_0, bool A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class s.i : MulticastDelegate, ISerializable, ICloneable
+    {
+        public i(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, bool A_1);
+        public IAsyncResult BeginInvoke(object A_0, bool A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class s.q : MulticastDelegate, ISerializable, ICloneable
+    {
+        public q(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, bool A_1);
+        public IAsyncResult BeginInvoke(object A_0, bool A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class s.l : MulticastDelegate, ISerializable, ICloneable
+    {
+        public l(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, bool A_1);
+        public IAsyncResult BeginInvoke(object A_0, bool A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class s.e : MulticastDelegate, ISerializable, ICloneable
+    {
+        public e(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, CultureInfo A_1);
+        public IAsyncResult BeginInvoke(object A_0, CultureInfo A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class s.j : MulticastDelegate, ISerializable, ICloneable
+    {
+        public j(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, string A_1);
+        public IAsyncResult BeginInvoke(object A_0, string A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class s.m : MulticastDelegate, ISerializable, ICloneable
+    {
+        public m(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, string A_1);
+        public IAsyncResult BeginInvoke(object A_0, string A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class s.b : MulticastDelegate, ISerializable, ICloneable
+    {
+        public b(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, int A_1);
+        public IAsyncResult BeginInvoke(object A_0, int A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class s.f : MulticastDelegate, ISerializable, ICloneable
+    {
+        public f(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, int A_1);
+        public IAsyncResult BeginInvoke(object A_0, int A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class s.p : MulticastDelegate, ISerializable, ICloneable
+    {
+        public p(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, int A_1);
+        public IAsyncResult BeginInvoke(object A_0, int A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class s.a : MulticastDelegate, ISerializable, ICloneable
+    {
+        public a(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, string A_1);
+        public IAsyncResult BeginInvoke(object A_0, string A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class s.n : MulticastDelegate, ISerializable, ICloneable
+    {
+        public n(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, string A_1);
+        public IAsyncResult BeginInvoke(object A_0, string A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class s.o : MulticastDelegate, ISerializable, ICloneable
+    {
+        public o(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, bool A_1);
+        public IAsyncResult BeginInvoke(object A_0, bool A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class s.d : MulticastDelegate, ISerializable, ICloneable
+    {
+        public d(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, bool A_1);
+        public IAsyncResult BeginInvoke(object A_0, bool A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+
+    public class s.r : MulticastDelegate, ISerializable, ICloneable
+    {
+        public r(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, string A_1, bool A_2);
+        public IAsyncResult BeginInvoke(object A_0, string A_1, bool A_2, AsyncCallback A_3, object A_4);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+}
+
+
+// ====== namespace Com.Raritan.RcCore.Scan ======
+
+public class Scan.a : Core.e, _Exception, ISerializable
+{
+    public a();
+    public a(string A_0);
+    public a(int A_0, string A_1);
+    public a(string A_0, Exception A_1);
+    public a(int A_0, string A_1, Exception A_2);
+    public a(Exception A_0);
+}
+
+public class Scan.b
+{
+    public b();
+
+    public class Scan.b.a : MulticastDelegate, ISerializable, ICloneable
+    {
+        public a(object A_0, IntPtr A_1);
+        public void Invoke(object A_0, int A_1);
+        public IAsyncResult BeginInvoke(object A_0, int A_1, AsyncCallback A_2, object A_3);
+        public void EndInvoke(IAsyncResult A_0);
+    }
+}
+
+public interface Scan.c : IDisposable
+{
+    public void a(string[] A_0);
+    public void a();
+}
+
+public interface Scan.d
+{
+    public Scan.c a(ILog A_0, Control A_1, string A_2, int A_3, bool A_4, string A_5, string A_6, bool A_7);
+    public Scan.c a(ILog A_0, Control A_1, string A_2, int A_3, bool A_4, string A_5);
+    public Scan.c a(ILog A_0, Control A_1, string A_2, int A_3, bool A_4, string A_5, string A_6);
+}
+
+public class Scan.e
+{
+    public e();
+    public static Scan.d b();
+    public static void a();
+}
+
+
+// ====== namespace Com.Raritan.RcCore.Scan.Impl ======
+
+internal class Scan.Impl.a : Core.Impl.k, IDisposable, Scan.c, Scan.Impl.b
+{
+    public a(ILog A_0, Control A_1, string A_2, int A_3, bool A_4, string A_5, string A_6, string A_7, string A_8, string A_9, bool A_10);
+    public void bl();
+    public void a(string[] A_0);
+    public void bm();
+    public void a(int A_0);
+}
+
+public interface Scan.Impl.b
+{
+    public void a(int A_0);
+    public void a(Core.g A_0);
+    public void b(bool A_0, Exception A_1);
+}
+
+
+// ====== namespace Com.Raritan.RcCore.Scan.Impl.Commands ======
+
+internal class Scan.Impl.Commands.a : e<Scan.Impl.Commands.c>
+{
+    public a(byte[] A_0, string A_1);
+    public void a(Scan.Impl.Commands.c A_0);
+}
+
+internal class Scan.Impl.Commands.b : e<Scan.Impl.Commands.c>
+{
+    public b(string A_0, string A_1);
+    public void a(Scan.Impl.Commands.c A_0);
+}
+
+internal interface Scan.Impl.Commands.c
+{
+    public void a(Scan.Impl.Commands.b A_0);
+    public void a(Scan.Impl.Commands.d A_0);
+    public void a(Scan.Impl.Commands.f A_0);
+    public void a(Scan.Impl.Commands.a A_0);
+    public void a(Scan.Impl.Commands.g A_0);
+    public void a(Scan.Impl.Commands.e A_0);
+    public void a(Scan.Impl.Commands.h A_0);
+}
+
+internal class Scan.Impl.Commands.d : e<Scan.Impl.Commands.c>
+{
+    public d(string A_0);
+    public void a(Scan.Impl.Commands.c A_0);
+}
+
+internal class Scan.Impl.Commands.e : e<Scan.Impl.Commands.c>
+{
+    public e();
+    public void a(Scan.Impl.Commands.c A_0);
+}
+
+internal class Scan.Impl.Commands.f : e<Scan.Impl.Commands.c>
+{
+    public f(string A_0);
+    public void a(Scan.Impl.Commands.c A_0);
+}
+
+internal class Scan.Impl.Commands.g : e<Scan.Impl.Commands.c>
+{
+    public g();
+    public void a(Scan.Impl.Commands.c A_0);
+}
+
+internal class Scan.Impl.Commands.h : e<Scan.Impl.Commands.c>
+{
+    public h(string[] A_0);
+    public void a(Scan.Impl.Commands.c A_0);
+}
+
+
+// ====== namespace Com.Raritan.RcCore.Scan.Impl.Rsp ======
+
+internal class Scan.Impl.Rsp.a : Scan.Impl.Rsp.f
+{
+    public a(int A_0, int A_1);
+    public void a(Core.Impl.c A_0);
+}
+
+internal static class Scan.Impl.Rsp.b
+{
+    public static string a;
+    public static string b;
+    public static string c;
+    public static string d;
+    public static string e;
+    public static int f;
+    public static int g;
+    public static int h;
+    public static int i;
+    public static int j;
+    public static int k;
+    public static int l;
+    public static int m;
+    public static int n;
+}
+
+internal class Scan.Impl.Rsp.c : l<object>
+{
+    public c();
+    public l<object> a(Core.Impl.e A_0);
+    public void a(object A_0);
+}
+
+public interface Scan.Impl.Rsp.d
+{
+
+Unhandled Exception:
+System.NullReferenceException: Object reference not set to an instance of an object
+  at Discover.Friendly (System.Type t) [0x001d2] in <6cbfb64b1eec4d46b8257aad54ff5d11>:0 
+  at System.Linq.Enumerable+SelectArrayIterator`2[TSource,TResult].MoveNext () [0x0003d] in <a092d9d32f72452296e7359a6d35c04e>:0 
+  at System.String.Join (System.String separator, System.Collections.Generic.IEnumerable`1[T] values) [0x00018] in <8611ac11d22247aabb4fd94490032492>:0 
+  at Discover.Friendly (System.Type t) [0x0019c] in <6cbfb64b1eec4d46b8257aad54ff5d11>:0 
+  at Discover.<Params>m__D (System.Reflection.ParameterInfo p) [0x0003c] in <6cbfb64b1eec4d46b8257aad54ff5d11>:0 
+  at System.Linq.Enumerable+SelectArrayIterator`2[TSource,TResult].MoveNext () [0x0003d] in <a092d9d32f72452296e7359a6d35c04e>:0 
+  at System.String.Join (System.String separator, System.Collections.Generic.IEnumerable`1[T] values) [0x00018] in <8611ac11d22247aabb4fd94490032492>:0 
+  at Discover.Params (System.Reflection.MethodBase m) [0x0002d] in <6cbfb64b1eec4d46b8257aad54ff5d11>:0 
+  at Discover.EmitType (System.Type t, System.String indent) [0x00706] in <6cbfb64b1eec4d46b8257aad54ff5d11>:0 
+  at Discover.Main (System.String[] args) [0x001b3] in <6cbfb64b1eec4d46b8257aad54ff5d11>:0 
+[ERROR] FATAL UNHANDLED EXCEPTION: System.NullReferenceException: Object reference not set to an instance of an object
+  at Discover.Friendly (System.Type t) [0x001d2] in <6cbfb64b1eec4d46b8257aad54ff5d11>:0 
+  at System.Linq.Enumerable+SelectArrayIterator`2[TSource,TResult].MoveNext () [0x0003d] in <a092d9d32f72452296e7359a6d35c04e>:0 
+  at System.String.Join (System.String separator, System.Collections.Generic.IEnumerable`1[T] values) [0x00018] in <8611ac11d22247aabb4fd94490032492>:0 
+  at Discover.Friendly (System.Type t) [0x0019c] in <6cbfb64b1eec4d46b8257aad54ff5d11>:0 
+  at Discover.<Params>m__D (System.Reflection.ParameterInfo p) [0x0003c] in <6cbfb64b1eec4d46b8257aad54ff5d11>:0 
+  at System.Linq.Enumerable+SelectArrayIterator`2[TSource,TResult].MoveNext () [0x0003d] in <a092d9d32f72452296e7359a6d35c04e>:0 
+  at System.String.Join (System.String separator, System.Collections.Generic.IEnumerable`1[T] values) [0x00018] in <8611ac11d22247aabb4fd94490032492>:0 
+  at Discover.Params (System.Reflection.MethodBase m) [0x0002d] in <6cbfb64b1eec4d46b8257aad54ff5d11>:0 
+  at Discover.EmitType (System.Type t, System.String indent) [0x00706] in <6cbfb64b1eec4d46b8257aad54ff5d11>:0 
+  at Discover.Main (System.String[] args) [0x001b3] in <6cbfb64b1eec4d46b8257aad54ff5d11>:0 

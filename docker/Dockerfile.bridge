@@ -1,0 +1,99 @@
+FROM debian:bookworm-slim
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Headless AKC bridge — Phase 8: kxgui.exe als ganzes hosten, BrowserMediator via Reflection.
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        mono-runtime \
+        libmono-system-windows-forms4.0-cil \
+        libmono-system-drawing4.0-cil \
+        libmono-system4.0-cil \
+        libmono-system-core4.0-cil \
+        libmono-system-xml4.0-cil \
+        libmono-system-configuration4.0-cil \
+        libmono-system-deployment4.0-cil \
+        libmono-i18n4.0-all \
+        libmono-cecil-cil-dev \
+        libgdiplus \
+        ca-certificates \
+        gcc \
+        libc6-dev \
+        procps \
+        iproute2 \
+        iputils-ping \
+        netcat-openbsd \
+        tini \
+        mono-mcs \
+        xvfb \
+        xauth \
+        x11vnc \
+        websockify \
+        novnc \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+COPY bridge/Probe.cs bridge/Bridge.cs stubs/winstub.c stubs/SystemDeployment.cs stubs/CecilPatch.cs /build/
+COPY bridge/app/ /opt/akc/
+
+# Compile native stub library
+RUN gcc -shared -fPIC -O2 -Wall -o /opt/akc/libwinstub.so /build/winstub.c
+
+# System.Deployment-Stub
+RUN mcs -target:library -out:/opt/akc/System.Deployment.dll /build/SystemDeployment.cs
+
+# Build CecilPatch tool and run it on kxgui.exe → kxgui-patched.exe
+# Mono.Cecil ist nicht im GAC — DLL muss neben der exe liegen
+RUN cp /usr/lib/mono-cecil/Mono.Cecil.dll /build/ \
+ && mcs -out:/build/CecilPatch.exe -r:/build/Mono.Cecil.dll /build/CecilPatch.cs \
+ && mono /build/CecilPatch.exe /opt/akc/kxgui.exe /opt/akc/kxgui-patched.exe
+
+# Compile Probe.exe (this iteration's main entry — diagnostic AKC-reflection probe)
+RUN mcs -out:/opt/akc/Probe.exe \
+        -r:System.Windows.Forms.dll \
+        -r:System.Drawing.dll \
+        -r:/opt/akc/log4net.dll \
+        /build/Probe.cs
+
+# Keep the old Bridge.exe around too for reference
+RUN mcs -out:/opt/akc/Bridge.exe \
+        -r:System.Windows.Forms.dll \
+        -r:System.Drawing.dll \
+        -r:/opt/akc/log4net.dll \
+        /build/Bridge.cs
+
+# dllmap for Win32 P/Invokes (rccore + kxgui both need this)
+RUN printf '%s\n' \
+    '<configuration>' \
+    '  <dllmap dll="urlmon.dll" target="libwinstub.so" />' \
+    '  <dllmap dll="wininet.dll" target="libwinstub.so" />' \
+    '  <dllmap dll="shell32.dll" target="libwinstub.so" />' \
+    '  <dllmap dll="kernel32.dll" target="libwinstub.so" />' \
+    '  <dllmap dll="kernel32" target="libwinstub.so" />' \
+    '  <dllmap dll="user32.dll" target="libwinstub.so" />' \
+    '  <dllmap dll="user32" target="libwinstub.so" />' \
+    '  <dllmap dll="winmm.dll" target="libwinstub.so" />' \
+    '  <dllmap dll="WINSCARD.DLL" target="libwinstub.so" />' \
+    '  <dllmap dll="ole32.dll" target="libwinstub.so" />' \
+    '</configuration>' \
+    > /opt/akc/core.dll.config
+# All AKC binaries use the same stub library
+RUN for d in rccore audiocore vmcore smartcard kxgui; do \
+    cp /opt/akc/core.dll.config "/opt/akc/${d}.dll.config" 2>/dev/null || true; \
+    done; \
+    cp /opt/akc/core.dll.config /opt/akc/kxgui.exe.config; \
+    cp /opt/akc/core.dll.config /opt/akc/kxgui-patched.exe.config
+
+COPY docker/entrypoint-bridge.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+WORKDIR /opt/akc
+
+ENV RARITAN_IP=""
+ENV RARITAN_PORT=443
+ENV RARITAN_USER="admin"
+ENV RARITAN_PASS=""
+ENV BRIDGE_MODE="bridge"
+ENV RARITAN_PORT_ID=""
+EXPOSE 5900 6080 8081
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]

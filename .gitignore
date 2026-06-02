@@ -1,0 +1,15 @@
+# Große Binär-Artefakte / Snapshots — gehören nicht ins Git
+*.tar
+*.tar.gz
+*.tgz
+
+# Extrahierte / generierte Verzeichnisse
+runtime-logs/
+diag-test-logs/
+
+# Fremdes Projekt mit eigenem Git-Remote (github.com/JxxKal/ids)
+ids/
+
+# OS / Editor
+.DS_Store
+*.swp
