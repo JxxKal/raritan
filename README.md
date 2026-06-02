@@ -15,7 +15,7 @@ git clone https://github.com/JxxKal/raritan.git
 | Phase | Status |
 |---|---|
 | 1. AKC-Binär-Analyse, Mono-Pfad validiert | ✅ |
-| 2. Diagnose-Container (1 Container, headless test) | 🚧 gebaut, OT-Test ausstehend |
+| 2. Diagnose-Container (1 Container, headless test) | ✅ OT-Test erfolgreich — AKC startet & verbindet zur DKX2 |
 | 3. Produktiv-Container mit Guacamole | 📋 geplant |
 
 ## Repo-Layout
@@ -61,11 +61,8 @@ Erzeugt:
 
 Siehe [`docker/OT-TEST-README.md`](docker/OT-TEST-README.md).
 
-## Was wir gleichzeitig vermissen werden im OT-Test
+## OT-Test: Ergebnis
 
-Bisher mit Dummy-IPs nur das UI-Aufkommen verifiziert. Beim echten Connect zur DKX2 könnten noch P/Invokes triggert die wir nicht stubben:
-- TLS/Crypto-Pfade in `System.Security.Cryptography.X509Certificates` → Mono macht das eigentlich richtig, aber Raritan-Server-Cert ist evtl. self-signed
-- WebBrowser-Control im EXE (für eingebettete Hilfe/UI-Teile) → Mono unterstützt das nur via xulrunner/webkit, oft brüchig. Falls relevant: weiterer Patch nötig.
-- Performance-Counter-Calls (`QueryPerformanceCounter`) — sollten gehen, aber gut zu wissen
+Der Diagnoselauf gegen die echte DKX2 war erfolgreich — der AKC startet unter Mono, verbindet sich und loggt sich ein. Ein weiterer Diagnoselauf ist nicht mehr nötig.
 
-Der Diagnose-Container schreibt detaillierte Logs — die zeigen, was vom OT-Lauf zurück muss um die nächste Iteration zu bauen.
+Nächster Schritt ist Phase 3: Produktiv-Container (AKC im Xvfb gerendert, per x11vnc/Guacamole im Browser bedienbar).
