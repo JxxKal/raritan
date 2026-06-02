@@ -2,6 +2,14 @@
 
 Verpackt den Raritan Active KVM Client (.NET-App, eigentlich Windows/IE-only) in einem Linux-Container, sodass die DKX2 aus einem normalen Browser (über VNC/Guacamole) bedient werden kann — ohne Java, ohne IE.
 
+**Repo:** https://github.com/JxxKal/raritan (privat)
+
+```bash
+git clone https://github.com/JxxKal/raritan.git
+```
+
+> Hinweis: Große Binär-Snapshots (`*.tar`, `*.tar.gz`) sind via `.gitignore` ausgeschlossen und nicht Teil des Repos.
+
 ## Status
 
 | Phase | Status |
