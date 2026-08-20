@@ -1,8 +1,16 @@
 akc-extracted/
 runtime-logs/
+diag-test-logs/
 *.tar
 *.tar.gz
 .git/
 stubs/*.exe
 stubs/*.dll
 stubs/*.so
+
+# Aeltere Kopie des Projekts im Projekt; gehoert nicht in den Build-Kontext.
+raritan/
+# Fremdes Projekt mit eigenem Git-Remote.
+ids/
+# Laufzeitprotokolle des Containers (bind-mount, kein Build-Eingang).
+logs/

@@ -6,7 +6,14 @@ Verpackt den Raritan Active KVM Client (.NET-App, eigentlich Windows/IE-only) in
 
 ```bash
 git clone https://github.com/JxxKal/raritan.git
+cd raritan
+cp .env.example .env      # RARITAN_IP und RARITAN_PASS eintragen
+docker compose up -d --build
 ```
+
+Danach `http://<host>:6080/vnc.html` im Browser öffnen. Die vollständige
+Anleitung — Proxy, abgeschottete Hosts, Absicherung, Fehlersuche — steht in
+**[DEPLOYMENT.md](DEPLOYMENT.md)**.
 
 > Hinweis: Große Binär-Snapshots (`*.tar`, `*.tar.gz`) sind via `.gitignore` ausgeschlossen und nicht Teil des Repos.
 
@@ -16,7 +23,7 @@ git clone https://github.com/JxxKal/raritan.git
 |---|---|
 | 1. AKC-Binär-Analyse, Mono-Pfad validiert | ✅ |
 | 2. Diagnose-Container (1 Container, headless test) | ✅ OT-Test erfolgreich — AKC startet & verbindet zur DKX2 |
-| 3. Produktiv-Container mit Guacamole | 📋 geplant |
+| 3. Produktiv-Container (Xvfb → x11vnc → noVNC) | ✅ läuft als Compose-Stack, siehe [DEPLOYMENT.md](DEPLOYMENT.md) |
 
 ## Repo-Layout
 
@@ -28,12 +35,23 @@ git clone https://github.com/JxxKal/raritan.git
 │   ├── SystemDeployment.cs    Stub für System.Deployment.ApplicationDeployment
 │   ├── winstub.c              C-Stubs für urlmon/wininet/shell32 P/Invokes
 │   └── CecilPatch.cs          IL-Patcher: entfernt Form.set_Icon (libgdiplus-Workaround)
+├── bridge/
+│   ├── Bridge.cs              Bridge: HTTP-Login, Port-Discovery, AKC-Stack, Control-API
+│   └── app/                   AKC-Binaries — Build-Input für Phase 3
 ├── docker/
+│   ├── Dockerfile.phase3      Produktiv-Image (Xvfb/x11vnc/noVNC/Mono)
+│   ├── entrypoint-phase3.sh
 │   ├── Dockerfile.diagnose    Diagnose-Image
 │   ├── entrypoint-diagnose.sh
 │   └── OT-TEST-README.md      Anleitung für OT-Host
+├── docker-compose.yml         Produktiv-Stack
+├── docker-compose.subnet.yml  Override: festes Subnetz, wenn Dockers Pools leer sind
+├── .env.example               Konfiguration (DKX2, Ports, Proxy)
+├── DEPLOYMENT.md              Installation und Betrieb
+├── deploy.sh                  Entwickler-Werkzeug: Arbeitsstand auf einen Test-Host schieben
 ├── runtime-logs/         Lokale Mono-Test-Logs
 ├── build-diagnose.sh     Baut Image + exportiert .tar.gz
+├── build-phase3.sh       Baut Produktiv-Image + exportiert .tar.gz (Transfer per USB)
 └── .dockerignore
 ```
 
@@ -59,7 +77,9 @@ Erzeugt:
 
 ## Deployment in OT
 
-Siehe [`docker/OT-TEST-README.md`](docker/OT-TEST-README.md).
+Siehe **[DEPLOYMENT.md](DEPLOYMENT.md)** — Installation, Proxy, Hosts ohne
+Internet, Absicherung und Fehlersuche. Der ältere Diagnose-Lauf ist in
+[`docker/OT-TEST-README.md`](docker/OT-TEST-README.md) beschrieben.
 
 ## OT-Test: Ergebnis
 
@@ -116,11 +136,15 @@ Aufbauend auf dem `set_Icon`-Patch aus Phase 1/2:
 
 ### Container-Änderungen ggü. Diagnose-Image
 
-- Zusätzliche Pakete: `x11vnc`, optional `websockify` + `novnc`
-- Entrypoint startet `Xvfb` + `x11vnc` (+ optional noVNC), dann die Bridge
-- Exponierte Ports: **5900** (VNC) und **6080** (noVNC HTTP)
-- Image-Größe ~265 MB (statt ~190 MB Diagnose)
+- Zusätzliche Pakete: `fluxbox`, `x11vnc`, `websockify` + `novnc`, dazu
+  Werkzeug zur Fehlersuche (`xdotool`, `xwd`, `xwininfo`)
+- Entrypoint startet `Xvfb`, `fluxbox`, `x11vnc` und noVNC, dann die Bridge
+- Exponierte Ports: **5900** (VNC), **6080** (noVNC HTTP), **8081** (Control-API)
+- Image-Größe 1,33 GB
 
 ### Status
 
-Architektur in der Entwicklung mit Bridge v16 bestätigt: noVNC-Frontend zeigt den vollständigen AKC-KVM-Viewer (Menüs, Toolbar, Statusleiste) gegen eine echte DKX2. Offen ist die Produktiv-Härtung (Dockerfile, Entrypoint, Build-Skript, Multi-Port-Handling).
+Bestätigt gegen eine echte DKX2: das noVNC-Frontend zeigt den vollständigen
+AKC-KVM-Viewer (Menüs, Toolbar, Statusleiste), Maus und Tastatur laufen bis zum
+Zielrechner durch. Produktiv-Härtung steht: Dockerfile, Entrypoint, Compose-Stack
+mit Proxy-Unterstützung und Build-Skript für Hosts ohne Internet.

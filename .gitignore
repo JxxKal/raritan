@@ -13,3 +13,8 @@ ids/
 # OS / Editor
 .DS_Store
 *.swp
+
+# Deploy-Zugangsdaten / lokale Env
+deploy.env
+.env
+logs/

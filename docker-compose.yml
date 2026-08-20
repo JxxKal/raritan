@@ -1,0 +1,64 @@
+services:
+
+  raritan-akc:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.phase3
+      # Proxy nur fuer den Bau. Docker behandelt diese Namen als vordefinierte
+      # Build-Argumente: sie landen in der Umgebung jedes RUN-Schritts, also
+      # auch bei apt, und werden nicht in die Image-Historie geschrieben.
+      args:
+        HTTP_PROXY:  ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY:    ${NO_PROXY:-localhost,127.0.0.1}
+        http_proxy:  ${HTTP_PROXY:-}
+        https_proxy: ${HTTPS_PROXY:-}
+        no_proxy:    ${NO_PROXY:-localhost,127.0.0.1}
+    image: raritan-akc-phase3:latest
+    restart: ${RESTART_POLICY:-unless-stopped}
+    environment:
+      # ── DKX2 ──
+      RARITAN_IP:   ${RARITAN_IP:?RARITAN_IP fehlt - siehe .env.example}
+      RARITAN_PORT: ${RARITAN_PORT:-443}
+      RARITAN_USER: ${RARITAN_USER:-admin}
+      RARITAN_PASS: ${RARITAN_PASS:?RARITAN_PASS fehlt - siehe .env.example}
+      # Leer lassen: Bridge.exe ermittelt die KVM-Ports selbst.
+      RARITAN_PORT_ID:   ${RARITAN_PORT_ID:-}
+      RARITAN_PORT_NAME: ${RARITAN_PORT_NAME:-}
+      # ── Anzeige ──
+      SCREEN_GEOMETRY: ${SCREEN_GEOMETRY:-1920x1080x24}
+      VNC_PASSWORD:    ${VNC_PASSWORD:-}
+      # Haelt den Container oben, wenn Bridge.exe abbricht - der X-Stack bleibt
+      # dann zur Fehlersuche erreichbar. Im Regelbetrieb 0.
+      KEEP_ALIVE: ${KEEP_ALIVE:-0}
+      # ── Proxy: bewusst abgeschaltet ──
+      # Der Container spricht ausschliesslich mit der DKX2 im lokalen Netz und
+      # braucht zur Laufzeit keinen Proxy. Mono wertet http_proxy/HTTP_PROXY
+      # auch fuer https-Adressen aus; ist einer gesetzt - etwa weil der Docker-
+      # Client ueber ~/.docker/config.json global einen einspeist -, laeuft der
+      # Login an der DKX2 in den Proxy und scheitert. Eine einzelne IP in
+      # no_proxy hilft dabei nicht, Mono ignoriert sie; nur "*" schaltet den
+      # Proxy zuverlaessig ab. Getestet, siehe DEPLOYMENT.md Abschnitt 2.
+      no_proxy: "*"
+      NO_PROXY: "*"
+    ports:
+      - "${VNC_HOST_PORT:-5900}:5900"
+      - "${NOVNC_HOST_PORT:-6080}:6080"
+      - "${CTRL_HOST_PORT:-8081}:8081"
+    volumes:
+      # Protokolle von Bridge, Xvfb, x11vnc und websockify; ausserdem legt
+      # "deploy.sh shot" hier den Bildschirmabzug ab.
+      - ./logs:/logs
+    # WinForms unter Mono legt Pixmaps in /dev/shm ab; die 64 MB der Vorgabe
+    # reichen fuer 1920x1080 nicht zuverlaessig.
+    shm_size: "256m"
+    ulimits:
+      # Der AKC raeumt den Render-Baum beim Sitzungsende sehr tief rekursiv ab.
+      # Der Entrypoint setzt den weichen Wert selbst - dafuer muss der harte
+      # offen sein, sonst bricht der Teardown mit SIGSEGV ab.
+      stack: -1
+    networks: [raritan-net]
+
+networks:
+  raritan-net:
+    driver: bridge
