@@ -394,6 +394,17 @@ Stack setzt dafür `ulimits: stack: -1`; der Entrypoint hebt den weichen Wert da
 selbst an. Zur Kontrolle steht die verwendete Größe in der Startzeile des
 Protokolls (`stack=524288`).
 
+**Ein zweiter Checkout übernimmt den laufenden Stack** — Compose identifiziert
+einen Stack über seinen Projektnamen. Der ist hier auf `raritan` festgelegt, also
+für alle Arbeitskopien auf dem Host derselbe: ein `docker compose up -d` aus einem
+zweiten Verzeichnis konfiguriert den **vorhandenen** Container um, statt einen
+zweiten zu starten. Pro Host ist genau eine Instanz vorgesehen. Wer trotzdem
+parallel testen will, gibt einen eigenen Namen mit:
+
+```bash
+docker compose -p raritan-test up -d
+```
+
 **Die DKX2 meldet die Sitzung als belegt** — eine KX2 erlaubt je Port nur eine
 Virtual-Media-Sitzung. Andere Clients auf demselben Port trennen, oder in der
 Oberfläche der DKX2 unter *Active Users* nachsehen.
