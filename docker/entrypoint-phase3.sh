@@ -97,9 +97,17 @@ log "starte x11vnc → Port 5900"
 # die vom VNC-Client gesendeten Keysyms nicht auf Keycodes mappen -> es entsteht gar
 # kein X-KeyEvent, AKC sieht die Taste nie (Maus geht trotzdem, da pointer-basiert).
 # -add_keysyms legt fehlende Keysyms zur Laufzeit auf freie Keycodes.
+# Cursor-Lag-Fix: Klicks landen korrekt (Position stimmt), nur der SICHTBARE Cursor hinkt
+# nach, weil noVNC ihn aus den langsamen Framebuffer-Updates rendert statt client-seitig.
+#   -cursor most -cursorpos : Cursor-Shape+Position via XFIXES/Cursor-Encoding senden ->
+#                             noVNC zeichnet den Cursor lokal am Mauszeiger = instant.
+#   -threads                : multithreaded -> deutlich reaktiver bei 1920x1080.
+#   -defer 5 -wait 5        : Updates schneller flushen (Default 30ms).
+# -quiet entfernt, damit x11vnc.log XFIXES/XDAMAGE/Cursor-Diagnose zeigt.
 x11vnc -display ":${DISPLAY_NUM}" -forever -shared -rfbport 5900 \
     -xkb -add_keysyms \
-    "${VNC_AUTH[@]}" -o "$LOG_DIR/x11vnc.log" -quiet &
+    -threads -defer 5 -wait 5 -cursor most -cursorpos \
+    "${VNC_AUTH[@]}" -o "$LOG_DIR/x11vnc.log" &
 X11VNC_PID=$!
 
 # ── websockify + noVNC ──
@@ -109,11 +117,32 @@ WS_PID=$!
 
 # ── Bridge.exe (AKC) im Vordergrund ──
 cd /opt/akc
-log "=== starte Bridge.exe → ${RARITAN_IP}:${RARITAN_PORT} (Control-API :8081) ==="
+# Mono-XIM abschalten: System.Windows.Forms.X11Keyboard.Xutf8LookupString segfaultet (SIGSEGV)
+# beim Übersetzen von (u.a. XTEST-injizierten) Key-Events. Ohne XIM nutzt Mono den simplen
+# XLookupString-Pfad -> kein Crash. Tastatur läuft unverändert über unseren IMessageFilter.
+export MONO_WINFORMS_XIM_STYLE=disabled
+# Stack-Sicherheitsnetz: bei einem Session-Teardown disposed AKC den Render-Control-Baum rekursiv
+# (Render.g.d -> DisposeChildren -> ...). Wird der durch eine Mono-Race-Exception (cross-thread
+# Control.Invalidate, s. Hwnd.AddInvalidArea) tief/zyklisch, läuft der Default-8MB-Stack über ->
+# SIGSEGV killt den Container. Großer Main-Thread-Stack lässt einen endlichen Teardown durchlaufen
+# (Session droppt sauber, Container bleibt) statt zu crashen.
+ulimit -s 524288 2>/dev/null || ulimit -s unlimited 2>/dev/null || true
+log "=== starte Bridge.exe → ${RARITAN_IP}:${RARITAN_PORT} (Control-API :8081, XIM disabled, stack=$(ulimit -s)) ==="
 LD_LIBRARY_PATH=. MONO_PATH=. mono Bridge.exe \
     "$RARITAN_IP" "$RARITAN_PORT" "$RARITAN_USER" "$RARITAN_PASS" "${RARITAN_PORT_ID}" "${RARITAN_PORT_NAME}" \
     2>&1 | tee "$LOG_DIR/bridge.log"
 EXIT=${PIPESTATUS[0]}
 
 log "=== Bridge.exe beendet (exit $EXIT) ==="
+
+# Debug-Modus: Container am Leben lassen, damit der X-Stack (Xvfb/x11vnc/noVNC)
+# stehen bleibt und die Bridge per `docker exec` neu gestartet werden kann,
+# ohne den ganzen Container neu hochzufahren:
+#   docker exec -it raritan-akc bash -lc 'DISPLAY=:99 MONO_PATH=. LD_LIBRARY_PATH=. \
+#       mono Bridge.exe "$RARITAN_IP" "$RARITAN_PORT" "$RARITAN_USER" "$RARITAN_PASS"'
+if [ "${KEEP_ALIVE:-0}" = "1" ]; then
+    log "KEEP_ALIVE=1 — Container bleibt oben (X-Stack läuft weiter, Bridge exit $EXIT)"
+    while true; do sleep 3600; done
+fi
+
 exit "$EXIT"

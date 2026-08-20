@@ -41,7 +41,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         novnc \
         netcat-openbsd \
         tini \
+        procps \
+        x11-utils \
+        x11-apps \
+        xdotool \
+        netpbm \
     && rm -rf /var/lib/apt/lists/*
+
+# procps/x11-utils/x11-apps/xdotool/netpbm sind reines Debug-Werkzeug für den
+# Feedback-Loop: ps, xwininfo/xdpyinfo, xdotool (Fokus/Fenster) und
+# xwd|xwdtopnm|pnmtopng für Screenshots des Xvfb-Displays nach /logs/.
 
 # ── Build-Stage: native Stubs, Cecil-Patch, Bridge.exe ──
 WORKDIR /build
@@ -88,6 +97,15 @@ RUN for d in rccore audiocore vmcore smartcard kxgui; do \
     cp /opt/akc/core.dll.config /opt/akc/kxgui.exe.config; \
     cp /opt/akc/core.dll.config /opt/akc/kxgui-patched.exe.config
 
+# fluxbox: kein Wallpaper-Setzen. Sonst ruft fbsetbg xmessage auf ("can\'t find an app
+# to set the wallpaper with") — der Dialog landet mitten im Display und zieht den
+# X-Input-Focus vom AKC-Fenster weg. Da fluxbox den Wallpaper-Call auch aus dem Style
+# heraus absetzt, ist xmessage zusätzlich auf /bin/true umgebogen — in einem headless
+# Kiosk-Container darf ohnehin kein modaler Dialog vor dem KVM-Fenster liegen.
+RUN mkdir -p /root/.fluxbox \
+ && printf '%s\n' 'session.screen0.rootCommand: fbsetroot -solid black' > /root/.fluxbox/init \
+ && ln -sf /bin/true /usr/bin/xmessage
+
 COPY docker/entrypoint-phase3.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
@@ -104,6 +122,8 @@ ENV RARITAN_PORT_NAME=""
 # Display-Geometrie und VNC-Auth
 ENV SCREEN_GEOMETRY="1920x1080x24"
 ENV VNC_PASSWORD=""
+# KEEP_ALIVE=1: Container nach Bridge-Ende oben lassen (Debug/Feedback-Loop)
+ENV KEEP_ALIVE=0
 
 #   5900 = VNC (x11vnc)   6080 = noVNC HTTP   8081 = Bridge Control-API
 EXPOSE 5900 6080 8081
