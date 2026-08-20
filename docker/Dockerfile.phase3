@@ -106,6 +106,11 @@ RUN mkdir -p /root/.fluxbox \
  && printf '%s\n' 'session.screen0.rootCommand: fbsetroot -solid black' > /root/.fluxbox/init \
  && ln -sf /bin/true /usr/bin/xmessage
 
+# noVNC bringt in Debian keine index.html mit: der blanke Aufruf von
+# http://<host>:6080/ landet deshalb im Verzeichnislisting von websockify statt
+# im Client. Der Verweis macht vnc.html zur Startseite.
+RUN ln -sf vnc.html /usr/share/novnc/index.html
+
 COPY docker/entrypoint-phase3.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
@@ -128,7 +133,11 @@ ENV KEEP_ALIVE=0
 #   5900 = VNC (x11vnc)   6080 = noVNC HTTP   8081 = Bridge Control-API
 EXPOSE 5900 6080 8081
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-    CMD nc -z localhost 5900 && nc -z localhost 6080 || exit 1
+# Alle drei Ports, nicht nur die Anzeige: die Control-API auf 8081 oeffnet
+# Bridge.exe erst nach erfolgreicher Anmeldung an der DKX2. Nur 5900/6080 zu
+# pruefen meldet den Container auch dann als healthy, wenn die Bridge laengst
+# abgebrochen ist und der Browser bloss auf einen schwarzen Bildschirm sieht.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD nc -z localhost 5900 && nc -z localhost 6080 && nc -z localhost 8081 || exit 1
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]

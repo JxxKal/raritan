@@ -166,7 +166,7 @@ und `.env` daraus kommen.
 Die Oberfläche im Browser öffnen:
 
 ```
-http://<host>:<NOVNC_HOST_PORT>/vnc.html
+http://<host>:<NOVNC_HOST_PORT>/
 ```
 
 *Connect* anklicken — bei gesetztem `VNC_PASSWORD` danach das Passwort eingeben.
@@ -245,9 +245,10 @@ docker compose logs -f raritan-akc
 ls logs/                # bridge.log, x11vnc.log, xvfb.log, websockify.log
 ```
 
-Der Healthcheck prüft, ob VNC und noVNC lauschen; `healthy` heißt also *der
-Bildschirm wird ausgeliefert*, nicht *die DKX2 ist verbunden*. Dafür ist das
-Protokoll zuständig.
+Der Healthcheck prüft alle drei Ports — auch die Control-API auf 8081, die
+Bridge.exe erst nach erfolgreicher Anmeldung an der DKX2 öffnet. `healthy` heißt
+damit: Anzeige läuft **und** die Sitzung zur DKX2 steht. Bricht die Bridge ab,
+fällt der Container binnen einer Minute auf `unhealthy`.
 
 **Bildschirmabzug ohne Browser.** Praktisch für Fernwartung und Fehlerberichte:
 
@@ -359,6 +360,18 @@ laufen. In `/etc/docker/daemon.json`:
 
 Danach `systemctl restart docker` — das stoppt kurzzeitig **alle** Container auf
 dem Host, und die Basisbereiche dürfen nicht mit dem OT-Netz kollidieren.
+
+**Auf der Control-API (8081) kommt keine Verbindung zustande** — den Port öffnet
+Bridge.exe erst, wenn die Anmeldung an der DKX2 durch ist. `Connection refused`
+heißt deshalb nicht *Port falsch gemappt*, sondern *die Bridge läuft nicht*. Der
+Grund steht im Protokoll:
+
+```bash
+docker compose logs raritan-akc | grep -E 'Login|Control API'
+```
+
+Steht dort `Login failed`, gilt der Abschnitt darüber. Ist der Container zugleich
+`unhealthy`, ist das dieselbe Ursache — der Healthcheck prüft diesen Port mit.
 
 **Der Browser zeigt nur einen schwarzen Bildschirm** — noVNC ist verbunden, aber
 der AKC malt nichts. Meist ist die Bridge abgebrochen, der X-Stack läuft weiter.
