@@ -1,0 +1,84 @@
+FROM debian:bookworm-slim
+ENV DEBIAN_FRONTEND=noninteractive
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Phase 4 — Multi-Platform Client (Java) statt AKC (.NET/Mono)
+#
+#   Browser ─WS─▶ noVNC/websockify (6080) ─VNC─▶ x11vnc (5900) ─grab─▶ Xvfb :99
+#                                                                         ▲
+#                                                                  render │
+#                                          MPC (com.raritan.rrc.ui.RRCApplication)
+#                                                     unter einer normalen JRE
+#                                                                         │
+#                                                                         ▼
+#                                                                   DKX2 KVM-IP
+#
+# Derselbe Aufbau wie Dockerfile.phase3, nur ist der Client ein anderer. Damit
+# entfallen saemtliche Mono-Kunstgriffe des AKC-Wegs: keine dllmap auf
+# libwinstub.so, keine drei Cecil-Patches, kein abgeschaltetes XIM, kein
+# angehobenes Stack-Limit, keine Reflection auf den BrowserMediator. MPC ist
+# eine gewoehnliche Swing-Anwendung und laeuft auf Linux ohne Verrenkungen.
+# ─────────────────────────────────────────────────────────────────────────────
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        openjdk-17-jre \
+        fonts-dejavu-core \
+        ca-certificates \
+        xvfb \
+        xauth \
+        fluxbox \
+        x11vnc \
+        websockify \
+        novnc \
+        netcat-openbsd \
+        tini \
+        procps \
+        x11-utils \
+        x11-apps \
+        xdotool \
+        netpbm \
+    && rm -rf /var/lib/apt/lists/*
+
+# openjdk-17-jre statt -headless: Swing braucht AWT und damit die vollstaendige
+# JRE. fonts-dejavu-core, weil eine JRE ohne Schriften jeden Text als Kaestchen
+# zeichnet.
+
+# noVNC bringt in Debian keine index.html mit; der Verweis macht vnc.html zur
+# Startseite, sonst landet der blanke Aufruf im Verzeichnislisting.
+RUN ln -sf vnc.html /usr/share/novnc/index.html
+
+# fluxbox soll kein Wallpaper setzen: fbsetbg ruft sonst xmessage auf, und der
+# Dialog nimmt dem Client-Fenster den X-Input-Focus.
+RUN mkdir -p /root/.fluxbox \
+ && printf '%s\n' 'session.screen0.rootCommand: fbsetroot -solid black' > /root/.fluxbox/init \
+ && ln -sf /bin/true /usr/bin/xmessage
+
+# Die Jars stammen aus dem MPC-Installer (mpcinstaller.MPC_7.0.3.5.62.jar).
+# start.sh des Installers laedt genau diese fuenf in dieser Reihenfolge.
+COPY mpc/ /opt/mpc/
+
+COPY docker/entrypoint-mpc.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+WORKDIR /opt/mpc
+
+# ── Laufzeit-Konfiguration ──
+ENV RARITAN_IP=""
+ENV RARITAN_PORT=443
+ENV RARITAN_USER="admin"
+ENV RARITAN_PASS=""
+ENV RARITAN_PORT_ID=""
+# Zusaetzliche schluessel=wert-Argumente fuer MPCs main(), durch Leerzeichen
+# getrennt. Die endgueltige Parameterliste liefert die Startseite des Geraets.
+ENV MPC_ARGS=""
+ENV SCREEN_GEOMETRY="1920x1080x24"
+ENV VNC_PASSWORD=""
+ENV KEEP_ALIVE=0
+
+#   5900 = VNC (x11vnc)   6080 = noVNC HTTP
+EXPOSE 5900 6080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD nc -z localhost 5900 && nc -z localhost 6080 || exit 1
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]
