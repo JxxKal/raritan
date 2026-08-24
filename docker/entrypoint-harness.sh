@@ -68,6 +68,22 @@ x11vnc -display ":${DISPLAY_NUM}" -forever -shared -rfbport 5900 \
     "${VNC_AUTH[@]}" -o "$LOG_DIR/x11vnc.log" &
 X11VNC_PID=$!
 
+# ── noVNC-Startseite ──
+# Ohne eigene index.html zeigt Debians noVNC-Paket ein Verzeichnislisting, und
+# vnc.html verlangt erst einen Klick auf "Verbinden" und skaliert nicht. Die
+# Startseite leitet deshalb mit den gewuenschten Parametern weiter.
+#   rm -f zuerst: liegt dort ein Symlink auf vnc.html, wuerde ein Schreiben
+#   sonst vnc.html selbst ueberschreiben.
+NOVNC_QUERY="${NOVNC_OPTIONS:-autoconnect=true&resize=scale&reconnect=true&reconnect_delay=2000}"
+rm -f /usr/share/novnc/index.html
+cat > /usr/share/novnc/index.html <<HTML
+<!doctype html>
+<meta charset="utf-8">
+<title>Raritan KVM</title>
+<meta http-equiv="refresh" content="0; url=vnc.html?${NOVNC_QUERY}">
+<a href="vnc.html?${NOVNC_QUERY}">weiter zum KVM</a>
+HTML
+log "noVNC-Startseite -> vnc.html?${NOVNC_QUERY}"
 log "starte websockify/noVNC → http://<host>:6080/"
 websockify --web=/usr/share/novnc 6080 "localhost:5900" > "$LOG_DIR/websockify.log" 2>&1 &
 WS_PID=$!

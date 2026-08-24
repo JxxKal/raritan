@@ -47,7 +47,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # im Image zu uebersetzen — so braucht der Zielhost keine Bauwerkzeuge.
 # fonts-dejavu-core, sonst zeichnet die JRE jeden Text als Kaestchen.
 
-RUN ln -sf vnc.html /usr/share/novnc/index.html
 
 RUN mkdir -p /root/.fluxbox \
  && printf '%s\n' 'session.screen0.rootCommand: fbsetroot -solid black' > /root/.fluxbox/init \
@@ -90,6 +89,8 @@ ENV RARITAN_PASS=""
 ENV RARITAN_PORT_ID=""
 ENV SCREEN_GEOMETRY="1920x1080x24"
 ENV VNC_PASSWORD=""
+# Parameter der noVNC-Startseite; der Entrypoint baut daraus die Weiterleitung.
+ENV NOVNC_OPTIONS="autoconnect=true&resize=scale&reconnect=true&reconnect_delay=2000"
 ENV KEEP_ALIVE=0
 
 #   5900 = VNC (x11vnc)   6080 = noVNC HTTP

@@ -106,10 +106,6 @@ RUN mkdir -p /root/.fluxbox \
  && printf '%s\n' 'session.screen0.rootCommand: fbsetroot -solid black' > /root/.fluxbox/init \
  && ln -sf /bin/true /usr/bin/xmessage
 
-# noVNC bringt in Debian keine index.html mit: der blanke Aufruf von
-# http://<host>:6080/ landet deshalb im Verzeichnislisting von websockify statt
-# im Client. Der Verweis macht vnc.html zur Startseite.
-RUN ln -sf vnc.html /usr/share/novnc/index.html
 
 COPY docker/entrypoint-phase3.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
@@ -131,6 +127,8 @@ ENV RARITAN_PORT_NAME=""
 ENV SCREEN_GEOMETRY="1920x1080x24"
 ENV VNC_PASSWORD=""
 # KEEP_ALIVE=1: Container nach Bridge-Ende oben lassen (Debug/Feedback-Loop)
+# Parameter der noVNC-Startseite; der Entrypoint baut daraus die Weiterleitung.
+ENV NOVNC_OPTIONS="autoconnect=true&resize=scale&reconnect=true&reconnect_delay=2000"
 ENV KEEP_ALIVE=0
 
 #   5900 = VNC (x11vnc)   6080 = noVNC HTTP   8081 = Bridge Control-API

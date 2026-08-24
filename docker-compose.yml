@@ -66,6 +66,7 @@ services:
       SCREEN_GEOMETRY: ${SCREEN_GEOMETRY:-1920x1080x24}
       VNC_PASSWORD:    ${VNC_PASSWORD:-}
       KEEP_ALIVE:      ${KEEP_ALIVE:-0}
+      NOVNC_OPTIONS:   ${NOVNC_OPTIONS:-autoconnect=true&resize=scale&reconnect=true&reconnect_delay=2000}
       # Zur Laufzeit kein Proxy: der Container spricht nur mit der KX2 im lokalen
       # Netz. Java liest http_proxy aus der Umgebung zwar nicht von sich aus —
       # aber der Docker-Client kann ueber ~/.docker/config.json jedem Container
@@ -99,6 +100,7 @@ services:
       SCREEN_GEOMETRY: ${SCREEN_GEOMETRY:-1920x1080x24}
       VNC_PASSWORD:    ${VNC_PASSWORD:-}
       KEEP_ALIVE:      ${KEEP_ALIVE:-0}
+      NOVNC_OPTIONS:   ${NOVNC_OPTIONS:-autoconnect=true&resize=scale&reconnect=true&reconnect_delay=2000}
       # Hier ist die Abschaltung zwingend: Mono wertet http_proxy/HTTP_PROXY auch
       # fuer https-Adressen aus und ignoriert eine einzelne IP in no_proxy. Ein
       # global eingespeister Proxy verschluckt sonst den Login an der KX2.
