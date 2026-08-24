@@ -110,8 +110,25 @@ class Bridge
                 Pclass = "KVM",
             };
         } else {
-            currentPort = ports.FirstOrDefault(p => p.Pclass == "KVM" && p.Status == 1)
-                       ?? ports.FirstOrDefault(p => p.Pclass == "KVM");
+            // Nur echte Zielports kommen in Frage. Die Discovery liefert daneben
+            // Pseudo-Einträge mit Pclass=KVM, die kein Ziel sind — auf einer KX2
+            // etwa "000d5d057eed_FG_0" (Ptype=FG). Ein Connect darauf endet nicht
+            // mit einem Fehler, sondern in einem endlos rekursiven Teardown von
+            // Render.g.d, der das Protokoll volllaufen lässt. Echte Zielports
+            // tragen die Kennung "P_<mac>_<n>".
+            var targets = ports.Where(p => p.Pclass == "KVM" && p.PortId.StartsWith("P_")).ToList();
+            currentPort = targets.FirstOrDefault(p => p.Status == 1 && p.Ptype != "Not Available");
+            if (currentPort == null) {
+                // Ohne angeschlossenen CIM meldet die KX2 jeden Port als
+                // "Not Available". Blind zu verbinden führt in denselben
+                // Teardown-Rausch — deshalb hier abbrechen statt es zu versuchen.
+                log.Error($"Kein belegter KVM-Port: {targets.Count} Zielport(s) gefunden, "
+                        + "aber keiner meldet Status=1. Ist ein CIM angeschlossen?");
+                foreach (var p in targets)
+                    log.Error($"  {p.PortId} ({p.Name}) type={p.Ptype} status={p.Status}");
+                log.Error("Mit RARITAN_PORT_ID lässt sich ein Port trotzdem erzwingen.");
+                return 1;
+            }
         }
         if (currentPort == null) {
             log.Error("No KVM port found in discovery; aborting");

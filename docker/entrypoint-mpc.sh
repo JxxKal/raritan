@@ -110,8 +110,8 @@ cd /opt/mpc
 log "=== starte MPC: ${ARGS[*]:-<ohne Argumente>} ==="
 java -Xmn128M -Xmx512M -Dsun.java2d.noddraw=true -Djava.awt.headless=false \
      -cp "$CP" com.raritan.rrc.ui.RRCApplication "${ARGS[@]}" \
-     2>&1 | tee "$LOG_DIR/mpc.log"
-EXIT=${PIPESTATUS[0]}
+     2>&1
+EXIT=$?
 
 log "=== MPC beendet (exit $EXIT) ==="
 

@@ -128,10 +128,16 @@ export MONO_WINFORMS_XIM_STYLE=disabled
 # (Session droppt sauber, Container bleibt) statt zu crashen.
 ulimit -s 524288 2>/dev/null || ulimit -s unlimited 2>/dev/null || true
 log "=== starte Bridge.exe → ${RARITAN_IP}:${RARITAN_PORT} (Control-API :8081, XIM disabled, stack=$(ulimit -s)) ==="
+# Kein "tee" nach /logs/bridge.log mehr: geraet der AKC in seinen rekursiven
+# Teardown, schreibt er den Stacktrace endlos: gemessene 1,1 GB in zwei Minuten,
+# und der Bind-Mount fuellt die Platte des Hosts. Die Ausgabe geht jetzt nur noch
+# an stdout, wo Dockers json-file-Treiber sie mit Groessenbegrenzung rotiert
+# (siehe logging-Abschnitt in docker-compose.yml). Zu lesen mit:
+#   docker compose logs -f raritan-akc
 LD_LIBRARY_PATH=. MONO_PATH=. mono Bridge.exe \
     "$RARITAN_IP" "$RARITAN_PORT" "$RARITAN_USER" "$RARITAN_PASS" "${RARITAN_PORT_ID}" "${RARITAN_PORT_NAME}" \
-    2>&1 | tee "$LOG_DIR/bridge.log"
-EXIT=${PIPESTATUS[0]}
+    2>&1
+EXIT=$?
 
 log "=== Bridge.exe beendet (exit $EXIT) ==="
 

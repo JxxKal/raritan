@@ -117,6 +117,9 @@ RUN chmod +x /entrypoint.sh
 WORKDIR /opt/akc
 
 # ── Laufzeit-Konfiguration ──
+# Ohne UTF-8-Locale schreibt Mono bzw. die JRE Umlaute im Protokoll als "?".
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 ENV RARITAN_IP=""
 ENV RARITAN_PORT=443
 ENV RARITAN_USER="admin"
