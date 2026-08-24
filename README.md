@@ -174,12 +174,13 @@ Damit entfällt der gesamte Mono-Unterbau aus Phase 1–3 — keine `dllmap` auf
 `libwinstub.so`, keine Cecil-Patches, kein abgeschaltetes XIM, kein angehobenes
 Stack-Limit, keine Reflection auf den `BrowserMediator`.
 
-### Drei Stolpersteine
+### Vier Stolpersteine
 
 | Was | Warum |
 |---|---|
 | Nach `start()` passiert nichts | Im Browser ruft die Seite per JavaScript `connect(isSwitch, fromPort, port, portId, channelName, portType, portPermission)`; erst dessen `notifyAll()` löst `runRemoteConsole()` aus der Sperre. Der Harness übernimmt diese Rolle. |
 | `NoSuchMethodError` in `initializeJSObjects()` | OpenJDK 17 liefert `netscape.javascript` mit, aber ohne `getWindow(java.applet.Applet)`. `--limit-modules java.se,jdk.crypto.ec` nimmt `jdk.jsobject` aus dem Modulgraphen, dann greift der Ersatz aus dem Klassenpfad. |
+| `NoClassDefFoundError: com/sun/java/browser/dom/DOMUnsupportedException` beim `Class.forName` des Applets | Neuere `rc.jar`-Stände sprechen die Seite auch über die DOM-Brücke des Java-Plugins an. Das Paket steckte allein in `plugin.jar` und fehlt jedem JDK seit 9; die Klasse steht in einer `throws`-Klausel und wird schon beim Laden aufgelöst. `harness/com/sun/java/browser/dom/` ersetzt sie — `getService()` liefert immer eine Brücke, jede Aktion läuft gegen ein leeres Dokument, Fehler werden gemeldet statt geworfen. |
 | TLS-Handshake scheitert | Die KX2 spricht nur TLS 1.0 mit `AES256-SHA` und weist sich mit einem selbstsignierten, SHA1-signierten, abgelaufenen Zertifikat aus. `harness/legacy.security` hebt die drei Sperren der JRE auf. |
 
 ### Woher der lesbare Quelltext kommt

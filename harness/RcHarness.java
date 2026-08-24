@@ -163,7 +163,12 @@ public class RcHarness {
                 log("keine Sitzung — neuer Versuch");
             }
             connectOnce();
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            // Throwable, nicht Exception: fehlt dem Applet eine Klasse aus der
+            // Plugin-Umgebung, kommt ein NoClassDefFoundError. Der ist ein
+            // Error und flog frueher an dieser Stelle vorbei — der Thread
+            // "reconnect" starb still, die Anzeige nannte weiter den alten
+            // Grund, und der Hinweis stand allein im Containerprotokoll.
             String why = e.getClass().getSimpleName()
                     + (e.getMessage() == null ? "" : ": " + e.getMessage());
             log("Anlauf fehlgeschlagen — " + why);

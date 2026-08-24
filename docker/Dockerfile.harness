@@ -67,9 +67,16 @@ COPY harness/ /build/
 # das Paket frei und unsere Fassung aus dem Klassenpfad wird geladen. java.se
 # deckt alles ab, was Applet und Swing brauchen; jdk.crypto.ec bleibt fuer TLS
 # ausdruecklich drin. Dieselbe Beschraenkung gilt zur Laufzeit im Entrypoint.
+#
+# com/sun/java/browser/dom: die zweite Bruecke zur Seite, die es nur im
+# Java-Plugin gab. Neuere rc.jar-Staende nennen sie in einer throws-Klausel des
+# Applets — ohne Ersatz endet schon Class.forName() mit NoClassDefFoundError.
+# Siehe DOMService.java.
 RUN mkdir -p classes /opt/harness \
  && javac --limit-modules java.se,jdk.crypto.ec -nowarn -encoding UTF-8 -d classes \
-        netscape/javascript/JSObject.java RcHarness.java \
+        netscape/javascript/JSObject.java \
+        com/sun/java/browser/dom/*.java \
+        RcHarness.java \
  && jar --create --file /opt/harness/harness.jar --main-class RcHarness -C classes . \
  && cp /build/legacy.security /opt/harness/legacy.security
 
