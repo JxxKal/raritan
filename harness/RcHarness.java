@@ -40,7 +40,19 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JLayeredPane;
+import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 
@@ -72,6 +84,13 @@ public class RcHarness {
 
     private static String host;
     private static int httpsPort = 443;
+
+    private static Applet applet;
+    private static Map<String, String> appletParams;
+    private static JLabel stateLabel;
+    private static JLabel eventLabel;
+    private static volatile String lastEvent = "—";
+    private static volatile boolean connected;
 
     public static void main(String[] args) throws Exception {
         host = arg(args, 0, "RARITAN_IP", null);
@@ -251,6 +270,7 @@ public class RcHarness {
 
     // ── Applet starten ───────────────────────────────────────────────────────
     private static void launch(File jarDir, Map<String, String> params) throws Exception {
+        appletParams = params;
         URL[] urls = new URL[CLIENT_JARS.length];
         for (int i = 0; i < CLIENT_JARS.length; i++) urls[i] = new File(jarDir, CLIENT_JARS[i]).toURI().toURL();
 
@@ -258,23 +278,31 @@ public class RcHarness {
         // netscape.javascript.JSObject-Ersatz findet statt gar keinen.
         URLClassLoader loader = new URLClassLoader(urls, RcHarness.class.getClassLoader());
         Class<?> cls = Class.forName(APPLET_CLASS, true, loader);
-        final Applet applet = (Applet) cls.getDeclaredConstructor().newInstance();
+        applet = (Applet) cls.getDeclaredConstructor().newInstance();
 
-        int w = Integer.parseInt(env("HARNESS_WIDTH", "1920"));
-        int h = Integer.parseInt(env("HARNESS_HEIGHT", "1080"));
+        // Der Client meldet seinen Zustand ueber die JSObject-Bruecke. Im Browser
+        // landet das in der Seite; hier in Protokoll und Anzeige.
+        netscape.javascript.JSObject.listener = (method, args) -> {
+            StringBuilder sb = new StringBuilder(method).append("(");
+            for (int i = 0; i < args.length; i++) sb.append(i > 0 ? ", " : "").append(args[i]);
+            String text = sb.append(")").toString();
+            log("Client meldet: " + text);
+            lastEvent = text;
+            String m = method.toLowerCase();
+            if (m.contains("connected") && !m.contains("dis")) connected = true;
+            if (m.contains("disconnected")) connected = false;
+            updateStatus();
+        };
+
+        final int w = Integer.parseInt(env("HARNESS_WIDTH", "1920"));
+        final int h = Integer.parseInt(env("HARNESS_HEIGHT", "1080"));
 
         final URL base = new URL("https://" + host + ":" + httpsPort + "/");
         applet.setStub(new Stub(applet, params, base, w, h));
         applet.setSize(w, h);
 
         SwingUtilities.invokeAndWait(new Runnable() {
-            public void run() {
-                JFrame frame = new JFrame("Raritan KVM — " + host);
-                frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-                frame.getContentPane().add(applet);
-                frame.setSize(w, h);
-                frame.setVisible(true);
-            }
+            public void run() { buildFrame(w, h); }
         });
 
         log("Applet.init()");
@@ -282,29 +310,155 @@ public class RcHarness {
         log("Applet.start()");
         applet.start();
 
-        // Im Browser bleibt das Applet nach start() stehen und wartet: die
-        // umgebende Seite ruft per JavaScript connect(...) auf, und erst dessen
-        // notifyAll() loest runRemoteConsole() aus der Sperre. Ohne diesen Aufruf
-        // passiert nichts — kein TCP, kein Bild. Der Harness uebernimmt hier die
-        // Rolle der Seite.
-        String portId = params.getOrDefault("PORT_ID", "");
+        connectOnce();
+
+        // Wiederholung: scheitert der Verbindungsaufbau — etwa weil kein CIM
+        // steckt oder der Zielrechner aus ist —, schliesst der Client sein
+        // Fenster wieder. Ohne Wiederholung bliebe der Rest der Sitzung nutzlos
+        // stehen, bis jemand den Container neu startet. Mit RETRY_SECONDS=0 aus.
+        int retry = Integer.parseInt(env("RETRY_SECONDS", "30"));
+        if (retry > 0) {
+            log("Wiederholung alle " + retry + " s, solange keine Sitzung steht (RETRY_SECONDS=0 schaltet das ab)");
+            while (true) {
+                Thread.sleep(retry * 1000L);
+                if (connected) continue;
+                log("keine Sitzung — neuer Versuch");
+                connectOnce();
+            }
+        }
+        Thread.currentThread().join();
+    }
+
+    /**
+     * Im Browser bleibt das Applet nach start() stehen und wartet: die umgebende
+     * Seite ruft per JavaScript connect(...) auf, und erst dessen notifyAll()
+     * loest runRemoteConsole() aus der Sperre. Ohne diesen Aufruf passiert
+     * nichts — kein TCP, kein Bild. Der Harness uebernimmt hier die Rolle der
+     * Seite.
+     */
+    private static void connectOnce() {
+        closeStaleDialogs();
+        String portId = appletParams.getOrDefault("PORT_ID", "");
         if (portId.isEmpty()) {
             log("kein PORT_ID — kein connect(); das Applet bleibt im Leerlauf");
-        } else {
-            String name = env("RARITAN_PORT_NAME", portId);
-            String type = env("RARITAN_PORT_TYPE", "VM");
-            String perm = env("RARITAN_PORT_PERM", "CCC");
-            log("connect(0, \"0\", \"0\", \"" + portId + "\", \"" + name + "\", \"" + type + "\", \"" + perm + "\")");
+            setState("kein KVM-Port bekannt");
+            return;
+        }
+        String name = env("RARITAN_PORT_NAME", portId);
+        String type = env("RARITAN_PORT_TYPE", "VM");
+        String perm = env("RARITAN_PORT_PERM", "CCC");
+        log("connect(0, \"0\", \"0\", \"" + portId + "\", \"" + name + "\", \"" + type + "\", \"" + perm + "\")");
+        setState("verbinde mit " + portId + " …");
+        try {
             java.lang.reflect.Method connect = applet.getClass().getMethod("connect",
                     int.class, String.class, String.class, String.class, String.class, String.class, String.class);
             connect.invoke(applet, 0, "0", "0", portId, name, type, perm);
+        } catch (Exception e) {
+            log("connect() fehlgeschlagen: " + e);
+            setState("connect() fehlgeschlagen: " + e.getMessage());
         }
+    }
 
-        log("=== laeuft — Fenster ist im X-Display sichtbar ===");
+    /**
+     * Scheitert der Verbindungsaufbau, laesst der Client einen modalen
+     * Fehlerdialog stehen. Bei jedem Wiederholungsversuch kaeme einer dazu —
+     * nach einer Stunde lägen 120 davon uebereinander, und der Dialog haelt den
+     * X-Input-Focus. Deshalb vor jedem Versuch aufraeumen. Angefasst werden nur
+     * sichtbare Dialoge, nicht der Hauptrahmen.
+     */
+    private static void closeStaleDialogs() {
+        try {
+            SwingUtilities.invokeAndWait(new Runnable() {
+                public void run() {
+                    for (java.awt.Window win : java.awt.Window.getWindows()) {
+                        if (!(win instanceof java.awt.Dialog) || !win.isVisible()) continue;
+                        log("schliesse Dialog: \"" + ((java.awt.Dialog) win).getTitle() + "\"");
+                        win.setVisible(false);
+                        win.dispose();
+                    }
+                }
+            });
+        } catch (Exception e) {
+            log("Aufraeumen der Dialoge fehlgeschlagen: " + e);
+        }
+    }
 
-        // Der Aufruf kehrt sofort zurueck; die Arbeit macht der EDT. Ohne diese
-        // Sperre wuerde der Prozess enden und der Container mit ihm.
-        Thread.currentThread().join();
+    /**
+     * Der Client oeffnet fuer die Sitzung ein eigenes Fenster und rendert nicht
+     * in diesen Rahmen. Scheitert der Verbindungsaufbau, schliesst er es wieder —
+     * und ohne diese Anzeige bliebe ein leerer Desktop zurueck, dem man nicht
+     * ansieht, ob ueberhaupt etwas laeuft.
+     */
+    private static void buildFrame(int w, int h) {
+        JPanel info = new JPanel();
+        info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
+        info.setBackground(new Color(0x1e1e1e));
+        info.setBorder(BorderFactory.createEmptyBorder(40, 48, 40, 48));
+
+        JLabel title = new JLabel("Raritan KVM");
+        title.setForeground(Color.WHITE);
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 28f));
+        info.add(title);
+        info.add(Box.createVerticalStrut(16));
+
+        info.add(line(host + ":" + httpsPort + "   Benutzer: " + env("RARITAN_USER", "admin")));
+        info.add(line("Port: " + appletParams.getOrDefault("PORT_ID", "—")));
+        info.add(Box.createVerticalStrut(16));
+
+        stateLabel = line("starte …");
+        stateLabel.setForeground(new Color(0x9cdcfe));
+        info.add(stateLabel);
+        eventLabel = line("Letzte Meldung: —");
+        info.add(eventLabel);
+        info.add(Box.createVerticalStrut(24));
+
+        JButton again = new JButton("Erneut verbinden");
+        again.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                new Thread(RcHarness::connectOnce, "reconnect").start();
+            }
+        });
+        info.add(again);
+        info.add(Box.createVerticalStrut(24));
+        info.add(line("Die Sitzung oeffnet ein eigenes Fenster ueber dieser Anzeige."));
+        info.add(line("Bleibt es aus, steht der Grund im Protokoll: docker compose logs -f"));
+
+        // Das Applet traegt visuell nichts bei, muss aber in voller Groesse in
+        // einem darstellbaren Rahmen haengen: getRootPane() braucht es fuer seine
+        // eigenen Dialoge. Deshalb liegt es unter der Anzeige, nicht neben ihr.
+        JLayeredPane layers = new JLayeredPane();
+        layers.setPreferredSize(new java.awt.Dimension(w, h));
+        applet.setBounds(0, 0, w, h);
+        info.setBounds(0, 0, w, h);
+        layers.add(applet, JLayeredPane.DEFAULT_LAYER);
+        layers.add(info, JLayeredPane.PALETTE_LAYER);
+
+        JFrame frame = new JFrame("Raritan KVM — " + host);
+        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        frame.getContentPane().setLayout(new BorderLayout());
+        frame.getContentPane().add(layers, BorderLayout.CENTER);
+        frame.setSize(w, h);
+        frame.setVisible(true);
+    }
+
+    private static JLabel line(String text) {
+        JLabel l = new JLabel(text);
+        l.setForeground(new Color(0xd4d4d4));
+        l.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 15));
+        return l;
+    }
+
+    private static void setState(String text) {
+        if (stateLabel == null) return;
+        SwingUtilities.invokeLater(() -> stateLabel.setText(text));
+    }
+
+    private static void updateStatus() {
+        if (eventLabel == null) return;
+        SwingUtilities.invokeLater(() -> {
+            eventLabel.setText("Letzte Meldung: " + lastEvent);
+            stateLabel.setText(connected ? "Sitzung steht" : "keine Sitzung");
+        });
     }
 
     /** Die Umgebung, die ein Applet vom Browser erwartet. */

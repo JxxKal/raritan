@@ -19,6 +19,14 @@ public class JSObject {
 
     private static final JSObject INSTANCE = new JSObject();
 
+    /**
+     * Der Client meldet seinen Zustand ueber diese Bruecke an die Seite —
+     * jacConnected, jacDisconnected, jacSwitched und Verwandte. Ausserhalb eines
+     * Browsers ist das die einzige Stelle, an der man erfaehrt, was er gerade
+     * tut. Der Harness haengt sich hier ein, statt zu raten.
+     */
+    public static java.util.function.BiConsumer<String, Object[]> listener;
+
     protected JSObject() {
     }
 
@@ -27,10 +35,12 @@ public class JSObject {
     }
 
     public Object call(String methodName, Object[] args) {
+        notifyListener(methodName, args);
         return null;
     }
 
     public Object eval(String s) {
+        notifyListener("eval", new Object[] { s });
         return null;
     }
 
@@ -49,6 +59,16 @@ public class JSObject {
     }
 
     public void setSlot(int index, Object value) {
+    }
+
+    private static void notifyListener(String method, Object[] args) {
+        java.util.function.BiConsumer<String, Object[]> l = listener;
+        if (l == null) return;
+        try {
+            l.accept(method, args == null ? new Object[0] : args);
+        } catch (Throwable ignored) {
+            // Ein Fehler in der Anzeige darf die Sitzung nicht mitreissen.
+        }
     }
 
     @Override

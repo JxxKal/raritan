@@ -63,6 +63,7 @@ services:
       RARITAN_PORT_PERM: ${RARITAN_PORT_PERM:-CCC}
       # 0 haelt das Passwort zurueck, falls die Session zur Anmeldung genuegt.
       HARNESS_SEND_PASSWORD: ${HARNESS_SEND_PASSWORD:-1}
+      RETRY_SECONDS:         ${RETRY_SECONDS:-30}
       SCREEN_GEOMETRY: ${SCREEN_GEOMETRY:-1920x1080x24}
       VNC_PASSWORD:    ${VNC_PASSWORD:-}
       KEEP_ALIVE:      ${KEEP_ALIVE:-0}
