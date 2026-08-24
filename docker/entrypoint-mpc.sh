@@ -15,12 +15,13 @@ mkdir -p "$LOG_DIR"
 DISPLAY_NUM=99
 export DISPLAY=":${DISPLAY_NUM}"
 
-XVFB_PID=""; FLUXBOX_PID=""; X11VNC_PID=""; WS_PID=""
+XVFB_PID=""; FLUXBOX_PID=""; X11VNC_PID=""; WS_PID=""; WATCH_PID=""
 
 log() { echo "[$(date -Iseconds)] $*"; }
 
 cleanup() {
     log "shutting down…"
+    [ -n "$WATCH_PID" ]   && kill "$WATCH_PID"   2>/dev/null
     [ -n "$WS_PID" ]      && kill "$WS_PID"      2>/dev/null
     [ -n "$X11VNC_PID" ]  && kill "$X11VNC_PID"  2>/dev/null
     [ -n "$FLUXBOX_PID" ] && kill "$FLUXBOX_PID" 2>/dev/null
@@ -118,6 +119,35 @@ ARGS=()
 [ -n "${RARITAN_PORT_ID}" ] && ARGS+=("portid=${RARITAN_PORT_ID}")
 # shellcheck disable=SC2206
 [ -n "${MPC_ARGS}" ] && ARGS+=(${MPC_ARGS})
+
+GEO_W="${SCREEN_GEOMETRY%%x*}"
+GEO_REST="${SCREEN_GEOMETRY#*x}"
+GEO_H="${GEO_REST%%x*}"
+WINDOW_TITLE_MATCH="${WINDOW_TITLE_MATCH:-Virtual KVM Client}"
+
+# ── Fenster des Clients auf Displaygroesse ziehen ──
+# Der Client oeffnet ein eigenes Fenster und rendert nicht in den Rahmen, den der
+# Harness aufspannt. Ohne Zutun erscheint es in seiner Vorgabegroesse (~715x560)
+# links oben, der Rest des Displays bleibt leer — und noVNC skaliert im Browser
+# genau diese leere Flaeche mit.
+#
+# Eine fluxbox-Regel in ~/.fluxbox/apps greift hier nicht: Swing setzt den
+# Fenstertitel erst NACH dem Mappen, da hat der Fenstermanager seine Regel
+# laengst angewandt. Deshalb ein Waechter, der neu erscheinende Fenster einmalig
+# aufzieht — einmalig, damit eine spaetere Groessenaenderung von Hand bleibt.
+(
+    handled=""
+    while true; do
+        for w in $(xdotool search --name "$WINDOW_TITLE_MATCH" 2>/dev/null); do
+            case " $handled " in *" $w "*) continue ;; esac
+            xdotool windowmove "$w" 0 0 windowsize "$w" 100% 100% 2>/dev/null \
+                && log "Fenster $w auf ${GEO_W}x${GEO_H} gezogen"
+            handled="$handled $w"
+        done
+        sleep 2
+    done
+) &
+WATCH_PID=$!
 
 cd /opt/mpc
 # -Dsun.java2d.noddraw=true stammt aus start.sh des Herstellers.

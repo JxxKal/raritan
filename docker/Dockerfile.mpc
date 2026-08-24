@@ -50,6 +50,7 @@ RUN mkdir -p /root/.fluxbox \
  && printf '%s\n' 'session.screen0.rootCommand: fbsetroot -solid black' > /root/.fluxbox/init \
  && ln -sf /bin/true /usr/bin/xmessage
 
+
 # Die Jars stammen aus dem MPC-Installer (mpcinstaller.MPC_7.0.3.5.62.jar).
 # start.sh des Installers laedt genau diese fuenf in dieser Reihenfolge.
 COPY mpc/ /opt/mpc/

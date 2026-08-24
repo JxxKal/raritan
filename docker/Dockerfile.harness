@@ -52,6 +52,7 @@ RUN mkdir -p /root/.fluxbox \
  && printf '%s\n' 'session.screen0.rootCommand: fbsetroot -solid black' > /root/.fluxbox/init \
  && ln -sf /bin/true /usr/bin/xmessage
 
+
 # ── Harness uebersetzen ──
 WORKDIR /build
 COPY harness/ /build/

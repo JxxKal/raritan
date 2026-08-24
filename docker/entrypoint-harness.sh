@@ -10,12 +10,12 @@ set -u
 
 LOG_DIR=/logs; mkdir -p "$LOG_DIR"
 DISPLAY_NUM=99; export DISPLAY=":${DISPLAY_NUM}"
-XVFB_PID=""; FLUXBOX_PID=""; X11VNC_PID=""; WS_PID=""
+XVFB_PID=""; FLUXBOX_PID=""; X11VNC_PID=""; WS_PID=""; WATCH_PID=""
 
 log() { echo "[$(date -Iseconds)] $*"; }
 cleanup() {
     log "shutting down…"
-    for p in "$WS_PID" "$X11VNC_PID" "$FLUXBOX_PID" "$XVFB_PID"; do
+    for p in "$WATCH_PID" "$WS_PID" "$X11VNC_PID" "$FLUXBOX_PID" "$XVFB_PID"; do
         [ -n "$p" ] && kill "$p" 2>/dev/null
     done
     wait 2>/dev/null
@@ -94,6 +94,32 @@ GEO_H="${GEO_REST%%x*}"
 
 # RcHarness liest die Geometrie aus der Umgebung, nicht aus Systemeigenschaften.
 export HARNESS_WIDTH="$GEO_W" HARNESS_HEIGHT="$GEO_H"
+
+WINDOW_TITLE_MATCH="${WINDOW_TITLE_MATCH:-Virtual KVM Client}"
+
+# ── Fenster des Clients auf Displaygroesse ziehen ──
+# Der Client oeffnet ein eigenes Fenster und rendert nicht in den Rahmen, den der
+# Harness aufspannt. Ohne Zutun erscheint es in seiner Vorgabegroesse (~715x560)
+# links oben, der Rest des Displays bleibt leer — und noVNC skaliert im Browser
+# genau diese leere Flaeche mit.
+#
+# Eine fluxbox-Regel in ~/.fluxbox/apps greift hier nicht: Swing setzt den
+# Fenstertitel erst NACH dem Mappen, da hat der Fenstermanager seine Regel
+# laengst angewandt. Deshalb ein Waechter, der neu erscheinende Fenster einmalig
+# aufzieht — einmalig, damit eine spaetere Groessenaenderung von Hand bleibt.
+(
+    handled=""
+    while true; do
+        for w in $(xdotool search --name "$WINDOW_TITLE_MATCH" 2>/dev/null); do
+            case " $handled " in *" $w "*) continue ;; esac
+            xdotool windowmove "$w" 0 0 windowsize "$w" 100% 100% 2>/dev/null \
+                && log "Fenster $w auf ${GEO_W}x${GEO_H} gezogen"
+            handled="$handled $w"
+        done
+        sleep 2
+    done
+) &
+WATCH_PID=$!
 
 cd /opt/harness
 log "=== starte RcHarness → ${RARITAN_IP}:${RARITAN_PORT} ==="
