@@ -89,7 +89,9 @@ public class RcHarness {
     private static Map<String, String> appletParams;
     private static JLabel stateLabel;
     private static JLabel eventLabel;
+    private static JLabel reasonLabel;
     private static volatile String lastEvent = "—";
+    private static volatile String lastReason = "";
     private static volatile boolean connected;
 
     public static void main(String[] args) throws Exception {
@@ -310,6 +312,7 @@ public class RcHarness {
         log("Applet.start()");
         applet.start();
 
+        startDialogWatchdog();
         connectOnce();
 
         // Wiederholung: scheitert der Verbindungsaufbau — etwa weil kein CIM
@@ -337,7 +340,6 @@ public class RcHarness {
      * Seite.
      */
     private static void connectOnce() {
-        closeStaleDialogs();
         String portId = appletParams.getOrDefault("PORT_ID", "");
         if (portId.isEmpty()) {
             log("kein PORT_ID — kein connect(); das Applet bleibt im Leerlauf");
@@ -360,27 +362,69 @@ public class RcHarness {
     }
 
     /**
-     * Scheitert der Verbindungsaufbau, laesst der Client einen modalen
-     * Fehlerdialog stehen. Bei jedem Wiederholungsversuch kaeme einer dazu —
-     * nach einer Stunde lägen 120 davon uebereinander, und der Dialog haelt den
-     * X-Input-Focus. Deshalb vor jedem Versuch aufraeumen. Angefasst werden nur
-     * sichtbare Dialoge, nicht der Hauptrahmen.
+     * Waechter fuer die modalen Dialoge des Clients.
+     *
+     * Scheitert ein Verbindungsaufbau, zeigt der Client einen modalen
+     * Fehlerdialog. Der parkt den EDT in einer verschachtelten Ereignisschleife
+     * (Dialog.show -> WaitDispatchSupport.enter) und blockiert dabei alle
+     * anderen Fenster der Anwendung — auch unseren Rahmen. Ein Klick auf
+     * "Erneut verbinden" erreicht den Knopf dann gar nicht erst, und jeder
+     * weitere Versuch legt einen Dialog obendrauf.
+     *
+     * Der Waechter nimmt den Text heraus, schreibt ihn in Protokoll und Anzeige
+     * und raeumt den Dialog ab. Die Meldung geht damit nicht verloren, sie steht
+     * nur an einer Stelle, die nichts blockiert.
      */
-    private static void closeStaleDialogs() {
-        try {
-            SwingUtilities.invokeAndWait(new Runnable() {
-                public void run() {
-                    for (java.awt.Window win : java.awt.Window.getWindows()) {
-                        if (!(win instanceof java.awt.Dialog) || !win.isVisible()) continue;
-                        log("schliesse Dialog: \"" + ((java.awt.Dialog) win).getTitle() + "\"");
-                        win.setVisible(false);
-                        win.dispose();
-                    }
+    private static void startDialogWatchdog() {
+        Thread t = new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(1500);
+                    SwingUtilities.invokeAndWait(RcHarness::reapDialogs);
+                } catch (InterruptedException e) {
+                    return;
+                } catch (Exception e) {
+                    log("Dialogwaechter: " + e);
                 }
-            });
-        } catch (Exception e) {
-            log("Aufraeumen der Dialoge fehlgeschlagen: " + e);
+            }
+        }, "dialog-watchdog");
+        t.setDaemon(true);
+        t.start();
+        log("Dialogwaechter laeuft — modale Meldungen des Clients landen in der Anzeige");
+    }
+
+    private static void reapDialogs() {
+        for (java.awt.Window win : java.awt.Window.getWindows()) {
+            if (!(win instanceof java.awt.Dialog) || !win.isVisible()) continue;
+            java.awt.Dialog dlg = (java.awt.Dialog) win;
+            String text = collectText(dlg).trim();
+            String title = dlg.getTitle() == null ? "" : dlg.getTitle();
+            log("Meldung des Clients [" + title + "]: " + (text.isEmpty() ? "(ohne Text)" : text));
+            // In eine eigene Zeile, nicht nach lastEvent: sonst ueberschreibt das
+            // unmittelbar folgende jacDisconnected() genau die Begruendung, die
+            // man sehen will.
+            lastReason = text.isEmpty() ? title : text;
+            updateStatus();
+            dlg.setVisible(false);
+            dlg.dispose();
         }
+    }
+
+    /** Sammelt die Beschriftungen eines Dialogs — dort steht die Fehlermeldung. */
+    private static String collectText(java.awt.Container c) {
+        StringBuilder sb = new StringBuilder();
+        for (java.awt.Component comp : c.getComponents()) {
+            if (comp instanceof JLabel) {
+                String t = ((JLabel) comp).getText();
+                if (t != null && !t.isEmpty()) sb.append(t).append(" ");
+            } else if (comp instanceof javax.swing.text.JTextComponent) {
+                String t = ((javax.swing.text.JTextComponent) comp).getText();
+                if (t != null && !t.isEmpty()) sb.append(t).append(" ");
+            } else if (comp instanceof java.awt.Container) {
+                sb.append(collectText((java.awt.Container) comp));
+            }
+        }
+        return sb.toString();
     }
 
     /**
@@ -410,6 +454,9 @@ public class RcHarness {
         info.add(stateLabel);
         eventLabel = line("Letzte Meldung: —");
         info.add(eventLabel);
+        reasonLabel = line("");
+        reasonLabel.setForeground(new Color(0xf48771));
+        info.add(reasonLabel);
         info.add(Box.createVerticalStrut(24));
 
         JButton again = new JButton("Erneut verbinden");
@@ -458,6 +505,7 @@ public class RcHarness {
         SwingUtilities.invokeLater(() -> {
             eventLabel.setText("Letzte Meldung: " + lastEvent);
             stateLabel.setText(connected ? "Sitzung steht" : "keine Sitzung");
+            if (reasonLabel != null) reasonLabel.setText(lastReason.isEmpty() ? "" : "Grund: " + lastReason);
         });
     }
 
