@@ -11,9 +11,14 @@ cp .env.example .env      # RARITAN_IP und RARITAN_PASS eintragen
 docker compose up -d --build
 ```
 
-Danach `http://<host>:6080/vnc.html` im Browser öffnen. Die vollständige
-Anleitung — Proxy, abgeschottete Hosts, Absicherung, Fehlersuche — steht in
+Danach `http://<host>:6080/` im Browser öffnen. Die vollständige Anleitung —
+Proxy, abgeschottete Hosts, Absicherung, Fehlersuche — steht in
 **[DEPLOYMENT.md](DEPLOYMENT.md)**.
+
+Der Stack startet den Java-Client, den die KX2 selbst ausliefert (`rc.jar`), ohne
+Browser — siehe [Phase 4](#phase-4-der-client-des-geräts-ohne-browser). Der
+ältere Weg über den .NET-Client unter Mono bleibt als Profil erhalten:
+`docker compose --profile akc up -d --build`.
 
 > Hinweis: Große Binär-Snapshots (`*.tar`, `*.tar.gz`) sind via `.gitignore` ausgeschlossen und nicht Teil des Repos.
 
@@ -24,6 +29,7 @@ Anleitung — Proxy, abgeschottete Hosts, Absicherung, Fehlersuche — steht in
 | 1. AKC-Binär-Analyse, Mono-Pfad validiert | ✅ |
 | 2. Diagnose-Container (1 Container, headless test) | ✅ OT-Test erfolgreich — AKC startet & verbindet zur DKX2 |
 | 3. Produktiv-Container (Xvfb → x11vnc → noVNC) | ✅ läuft als Compose-Stack, siehe [DEPLOYMENT.md](DEPLOYMENT.md) |
+| 4. Java-Client des Geräts statt AKC unter Mono | ✅ Anmeldung und Portwahl stehen; Bild braucht einen CIM |
 
 ## Repo-Layout
 
@@ -148,3 +154,37 @@ Bestätigt gegen eine echte DKX2: das noVNC-Frontend zeigt den vollständigen
 AKC-KVM-Viewer (Menüs, Toolbar, Statusleiste), Maus und Tastatur laufen bis zum
 Zielrechner durch. Produktiv-Härtung steht: Dockerfile, Entrypoint, Compose-Stack
 mit Proxy-Unterstützung und Build-Skript für Hosts ohne Internet.
+
+## Phase 4: Der Client des Geräts, ohne Browser
+
+Die KX2 lädt ihren Client selbst als Applet:
+
+```html
+<applet archive="rc.jar, rclang_en.jar" code="nn.pp.rc.RemoteConsoleApplet.class">
+  <param name="SESSION_ID" …> <param name="PORT" …> <param name="SSL" value="force">
+```
+
+`harness/RcHarness.java` baut die Umgebung nach, die dieses Applet erwartet —
+`AppletStub` und `AppletContext` —, meldet sich vorher per HTTP am Gerät an, holt
+die Parameter von dessen Seite und startet den Client in einem `JFrame`. `rc.jar`
+wird dabei **zur Laufzeit vom Gerät geladen**, nicht mitgeliefert: der Client
+passt so immer zur laufenden Firmware.
+
+Damit entfällt der gesamte Mono-Unterbau aus Phase 1–3 — keine `dllmap` auf
+`libwinstub.so`, keine Cecil-Patches, kein abgeschaltetes XIM, kein angehobenes
+Stack-Limit, keine Reflection auf den `BrowserMediator`.
+
+### Drei Stolpersteine
+
+| Was | Warum |
+|---|---|
+| Nach `start()` passiert nichts | Im Browser ruft die Seite per JavaScript `connect(isSwitch, fromPort, port, portId, channelName, portType, portPermission)`; erst dessen `notifyAll()` löst `runRemoteConsole()` aus der Sperre. Der Harness übernimmt diese Rolle. |
+| `NoSuchMethodError` in `initializeJSObjects()` | OpenJDK 17 liefert `netscape.javascript` mit, aber ohne `getWindow(java.applet.Applet)`. `--limit-modules java.se,jdk.crypto.ec` nimmt `jdk.jsobject` aus dem Modulgraphen, dann greift der Ersatz aus dem Klassenpfad. |
+| TLS-Handshake scheitert | Die KX2 spricht nur TLS 1.0 mit `AES256-SHA` und weist sich mit einem selbstsignierten, SHA1-signierten, abgelaufenen Zertifikat aus. `harness/legacy.security` hebt die drei Sperren der JRE auf. |
+
+### Woher der lesbare Quelltext kommt
+
+`rc.jar` vom Gerät ist obfuskiert. Der Multi-Platform Client (`sMpc.jar`) enthält
+denselben Code **unobfuskiert** — `nn.pp.rccore.impl.rfb.V01_21/V01_22`,
+`RfbAuthenticatorV01_22`, `ImageDecoderLrle`. Also: MPC zum Nachlesen, `rc.jar`
+zum Ausführen.

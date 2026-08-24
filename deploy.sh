@@ -40,9 +40,11 @@ sync() {
     echo "=== sync → ${USER}@${HOST}:${DEST} ==="
     remote "mkdir -p $DEST/logs"
     tar czf - \
-        bridge/Bridge.cs bridge/app \
+        bridge/Bridge.cs bridge/app harness mpc \
         stubs/winstub.c stubs/SystemDeployment.cs stubs/CecilPatch.cs \
         docker/Dockerfile.phase3 docker/entrypoint-phase3.sh \
+        docker/Dockerfile.harness docker/entrypoint-harness.sh \
+        docker/Dockerfile.mpc docker/entrypoint-mpc.sh \
         docker-compose.yml docker-compose.subnet.yml \
         .env.example .dockerignore README.md DEPLOYMENT.md \
       | remote "tar xzf - -C $DEST"
@@ -65,7 +67,7 @@ case "${1:-up}" in
              compose up -d; compose ps ;;
     # Screenshot des Xvfb-Displays holen (Container muss laufen)
     shot)    OUT="${2:-screen-$(date +%H%M%S).png}"
-             compose "exec -T raritan-akc bash -lc 'DISPLAY=:99 xwd -root -silent | xwdtopnm 2>/dev/null | pnmtopng > /logs/screen.png'"
+             compose "exec -T raritan-kvm bash -lc 'DISPLAY=:99 xwd -root -silent | xwdtopnm 2>/dev/null | pnmtopng > /logs/screen.png'"
              remote "cat $DEST/logs/screen.png" > "$OUT"
              echo "→ $OUT ($(du -h "$OUT" | cut -f1))" ;;
     down)    compose down ;;

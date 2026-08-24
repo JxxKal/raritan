@@ -21,11 +21,21 @@ als VNC beziehungsweise noVNC nach außen gereicht.
 Der Host selbst braucht **keinen** Grafikstack, keine X-Installation und keine
 GPU — alles davon steckt im Container.
 
-Der Stack besteht aus einem Dienst:
+Der Stack kennt zwei Wege zum selben Ziel. Gestartet wird nur der erste:
 
-| Dienst | Aufgabe | Ports |
-|---|---|---|
-| `raritan-akc` | Xvfb + fluxbox, x11vnc, websockify/noVNC, AKC unter Mono | 5900, 6080, 8081 |
+| Dienst | Client | Ports | Start |
+|---|---|---|---|
+| `raritan-kvm` | der Java-Client, den die KX2 selbst ausliefert, ohne Browser | 5900, 6080 | Standard |
+| `raritan-akc` | der Vorgänger: der .NET-Client unter Mono | 5901, 6081, 8081 | nur mit `--profile akc` |
+
+`raritan-kvm` lädt `rc.jar` beim Start vom Gerät. Der Client passt damit immer
+zur laufenden Firmware — nach einem Firmware-Update genügt ein Neustart des
+Containers, das Image bleibt unberührt.
+
+Der ältere `raritan-akc` bringt als einziger eine Control-Oberfläche zum
+Umschalten zwischen KVM-Ports mit (Port 8081); beim Standarddienst geschieht das
+über `RARITAN_PORT_ID`. Beide Dienste hören auf getrennte Host-Ports und können
+nebeneinander laufen.
 
 Was im Container übereinander liegt:
 
@@ -60,9 +70,8 @@ Ports anpassen, falls 5900/6080 belegt sind — auf Hosts mit anderen VNC- oder
 noVNC-Diensten ist das die Regel:
 
 ```bash
-VNC_HOST_PORT=5901
-NOVNC_HOST_PORT=6081
-CTRL_HOST_PORT=8081
+VNC_HOST_PORT=5910
+NOVNC_HOST_PORT=6090
 ```
 
 Starten:
@@ -71,9 +80,15 @@ Starten:
 docker compose up -d --build
 ```
 
-Der erste Start baut das Image; je nach Anbindung dauert das einige Minuten. Die
-Binärdateien des AKC liegen im Repository, es wird dafür nichts von Raritan
-nachgeladen.
+Das ist alles. Der erste Start baut das Image; je nach Anbindung dauert das
+einige Minuten. Danach läuft der Stack unter `docker compose ps` als
+`raritan-kvm`.
+
+Den alten Weg über den .NET-Client startet man bei Bedarf zusätzlich:
+
+```bash
+docker compose --profile akc up -d --build
+```
 
 ### Hinter einem Proxy
 
@@ -133,7 +148,7 @@ Zum Prüfen, was tatsächlich ankommt:
 
 ```bash
 docker compose config | grep -i proxy          # Bau
-docker compose exec raritan-akc env | grep -i proxy   # Laufzeit
+docker compose exec raritan-kvm env | grep -i proxy   # Laufzeit
 ```
 
 Zur Laufzeit darf dort nur `no_proxy=*` und `NO_PROXY=*` stehen.
@@ -176,11 +191,18 @@ Maus gehen von dort direkt an den angeschlossenen Rechner.
 Ob die Anmeldung geklappt hat, zeigt das Protokoll:
 
 ```bash
-docker compose logs raritan-akc | grep -E 'Login|Connect|ports'
+docker compose logs raritan-kvm | grep -E 'harness|Login|Connect'
 ```
 
-**Zwischen KVM-Ports umschalten.** Die Bridge bringt dafür eine kleine
-Oberfläche mit:
+**Zwischen KVM-Ports umschalten.** Der Standarddienst nimmt den Port aus
+`RARITAN_PORT_ID` in der `.env` (leer = der erste, den das Gerät nennt); ein
+Wechsel ist ein `docker compose up -d`. Die Kennungen stehen im Protokoll:
+
+```bash
+docker compose logs raritan-kvm | grep "gefundene Ports"
+```
+
+Der Dienst aus dem Profil `akc` bringt dafür eine kleine Oberfläche mit:
 
 ```
 http://<host>:<CTRL_HOST_PORT>/
@@ -241,19 +263,19 @@ gebraucht werden. Der AKC übernimmt die Rechte des angemeldeten Benutzers, ein
 
 ```bash
 docker compose ps
-docker compose logs -f raritan-akc
+docker compose logs -f raritan-kvm
 ls logs/                # bridge.log, x11vnc.log, xvfb.log, websockify.log
 ```
 
-Der Healthcheck prüft alle drei Ports — auch die Control-API auf 8081, die
-Bridge.exe erst nach erfolgreicher Anmeldung an der DKX2 öffnet. `healthy` heißt
-damit: Anzeige läuft **und** die Sitzung zur DKX2 steht. Bricht die Bridge ab,
-fällt der Container binnen einer Minute auf `unhealthy`.
+Der Healthcheck von `raritan-kvm` prüft VNC und noVNC; `healthy` heißt also *der
+Bildschirm wird ausgeliefert*. Ob die Sitzung zur KX2 steht, sagt das Protokoll.
+Beim Dienst aus dem Profil `akc` gehört die Control-API auf 8081 mit zum
+Healthcheck — dort heißt `healthy` zusätzlich, dass die Sitzung steht.
 
 **Bildschirmabzug ohne Browser.** Praktisch für Fernwartung und Fehlerberichte:
 
 ```bash
-docker compose exec raritan-akc bash -lc \
+docker compose exec raritan-kvm bash -lc \
     'DISPLAY=:99 xwd -root -silent | xwdtopnm | pnmtopng > /logs/screen.png'
 ```
 
@@ -273,7 +295,7 @@ Hinter einem Proxy zieht `--build` die Angaben aus der `.env`; ein zusätzliches
 Neustart der DKX2 oder einem Netzausfall:
 
 ```bash
-docker compose restart raritan-akc
+docker compose restart raritan-kvm
 ```
 
 **Stoppen und zurücksetzen**
@@ -294,9 +316,9 @@ gesetzt. Compose liest `.env` aus dem Verzeichnis, in dem der Befehl läuft.
 Der Reihe nach prüfen:
 
 ```bash
-docker compose logs raritan-akc | head -20        # steht dort schon "nicht erreichbar"?
-docker compose exec raritan-akc nc -zv <DKX2-IP> 443
-docker compose exec raritan-akc env | grep -i proxy   # darf nur no_proxy=* zeigen
+docker compose logs raritan-kvm | head -20        # steht dort schon "nicht erreichbar"?
+docker compose exec raritan-kvm nc -zv <KX2-IP> 443
+docker compose exec raritan-kvm env | grep -i proxy   # darf nur no_proxy=* zeigen
 ```
 
 Antwortet `nc` nicht, liegt es am Netz oder an einer Firewall zwischen Host und
@@ -361,7 +383,19 @@ laufen. In `/etc/docker/daemon.json`:
 Danach `systemctl restart docker` — das stoppt kurzzeitig **alle** Container auf
 dem Host, und die Basisbereiche dürfen nicht mit dem OT-Netz kollidieren.
 
-**Auf der Control-API (8081) kommt keine Verbindung zustande** — den Port öffnet
+**`[0x10020004] Connecting to Port … failed. …could not detect video.`** — die
+KX2 erreicht den Zielrechner nicht. In aller Regel steckt kein CIM am Port, oder
+der Zielrechner liefert kein Bild. Welche Ports belegt sind, zeigt die
+Weboberfläche des Geräts; ein Port ohne CIM meldet dort *Not Available*.
+
+**`[0x10000003] Authentication failed`** — die RFB-Anmeldung wurde abgewiesen,
+obwohl die HTTP-Anmeldung lief (im Protokoll steht dann bereits eine Session).
+Der Client handelt das Verfahren selbst aus; mit `HARNESS_SEND_PASSWORD=1`
+bekommt er Benutzer, Passwort und Session und darf wählen. Steht dort 0, wird nur
+die Session angeboten — was manche Firmware ablehnt.
+
+**Auf der Control-API (8081) kommt keine Verbindung zustande** — die gibt es nur
+im Profil `akc`; ohne `--profile akc` läuft dort nichts. Im Profil öffnet den Port
 Bridge.exe erst, wenn die Anmeldung an der DKX2 durch ist. `Connection refused`
 heißt deshalb nicht *Port falsch gemappt*, sondern *die Bridge läuft nicht*. Der
 Grund steht im Protokoll:

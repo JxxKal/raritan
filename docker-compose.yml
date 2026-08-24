@@ -3,73 +3,118 @@
 # Stack teilen und einander ueberschreiben. Pro Host laeuft genau eine Instanz.
 name: raritan
 
+# Zwei Wege zum selben Ziel, beide im Xvfb gerendert und per noVNC im Browser:
+#
+#   raritan-kvm  (Standard)  Der Java-Client, den die KX2 selbst ausliefert,
+#                            ohne Browser gestartet durch RcHarness.
+#   raritan-akc  (Profil)    Der Vorgaenger: der .NET-Client unter Mono.
+#
+# "docker compose up -d --build" baut und startet nur raritan-kvm. Den alten Weg
+# holt man mit "docker compose --profile akc up -d" dazu; er hoert auf eigene
+# Host-Ports, damit sich beide nicht in die Quere kommen.
+
+x-proxy-build-args: &proxy-build-args
+  # Proxy nur fuer den Bau. Docker behandelt diese Namen als vordefinierte
+  # Build-Argumente: sie landen in der Umgebung jedes RUN-Schritts, also auch bei
+  # apt, und werden nicht in die Image-Historie geschrieben.
+  #
+  # Achtung: das Basis-Image zieht der Docker-DAEMON, nicht der Build. Fuer den
+  # ist der Proxy getrennt zu hinterlegen — siehe DEPLOYMENT.md Abschnitt 2.
+  HTTP_PROXY:  ${HTTP_PROXY:-}
+  HTTPS_PROXY: ${HTTPS_PROXY:-}
+  NO_PROXY:    ${NO_PROXY:-localhost,127.0.0.1}
+  http_proxy:  ${HTTP_PROXY:-}
+  https_proxy: ${HTTPS_PROXY:-}
+  no_proxy:    ${NO_PROXY:-localhost,127.0.0.1}
+
+x-kvm-common: &kvm-common
+  restart: ${RESTART_POLICY:-unless-stopped}
+  # WinForms unter Mono und Swing unter Java legen Pixmaps in /dev/shm ab; die
+  # 64 MB der Vorgabe reichen fuer 1920x1080 nicht zuverlaessig.
+  shm_size: "256m"
+  # Ohne Begrenzung fuellt ein Client, der in eine Fehlerschleife geraet, die
+  # Platte des Hosts — beim AKC-Teardown gemessene 1,1 GB in zwei Minuten.
+  logging:
+    driver: json-file
+    options:
+      max-size: "20m"
+      max-file: "5"
+  networks: [raritan-net]
+
 services:
 
-  raritan-akc:
+  # ── Standard: der Java-Client der KX2, ohne Browser ──────────────────────
+  raritan-kvm:
+    <<: *kvm-common
     build:
       context: .
-      dockerfile: docker/Dockerfile.phase3
-      # Proxy nur fuer den Bau. Docker behandelt diese Namen als vordefinierte
-      # Build-Argumente: sie landen in der Umgebung jedes RUN-Schritts, also
-      # auch bei apt, und werden nicht in die Image-Historie geschrieben.
-      args:
-        HTTP_PROXY:  ${HTTP_PROXY:-}
-        HTTPS_PROXY: ${HTTPS_PROXY:-}
-        NO_PROXY:    ${NO_PROXY:-localhost,127.0.0.1}
-        http_proxy:  ${HTTP_PROXY:-}
-        https_proxy: ${HTTPS_PROXY:-}
-        no_proxy:    ${NO_PROXY:-localhost,127.0.0.1}
-    image: raritan-akc-phase3:latest
-    restart: ${RESTART_POLICY:-unless-stopped}
+      dockerfile: docker/Dockerfile.harness
+      args: *proxy-build-args
+    image: raritan-kvm:latest
     environment:
-      # ── DKX2 ──
       RARITAN_IP:   ${RARITAN_IP:?RARITAN_IP fehlt - siehe .env.example}
       RARITAN_PORT: ${RARITAN_PORT:-443}
       RARITAN_USER: ${RARITAN_USER:-admin}
       RARITAN_PASS: ${RARITAN_PASS:?RARITAN_PASS fehlt - siehe .env.example}
-      # Leer lassen: Bridge.exe ermittelt die KVM-Ports selbst.
+      # Leer lassen: der Harness nimmt den ersten Port, den das Geraet nennt.
       RARITAN_PORT_ID:   ${RARITAN_PORT_ID:-}
       RARITAN_PORT_NAME: ${RARITAN_PORT_NAME:-}
-      # ── Anzeige ──
+      RARITAN_PORT_TYPE: ${RARITAN_PORT_TYPE:-VM}
+      RARITAN_PORT_PERM: ${RARITAN_PORT_PERM:-CCC}
+      # 0 haelt das Passwort zurueck, falls die Session zur Anmeldung genuegt.
+      HARNESS_SEND_PASSWORD: ${HARNESS_SEND_PASSWORD:-1}
       SCREEN_GEOMETRY: ${SCREEN_GEOMETRY:-1920x1080x24}
       VNC_PASSWORD:    ${VNC_PASSWORD:-}
-      # Haelt den Container oben, wenn Bridge.exe abbricht - der X-Stack bleibt
-      # dann zur Fehlersuche erreichbar. Im Regelbetrieb 0.
-      KEEP_ALIVE: ${KEEP_ALIVE:-0}
-      # ── Proxy: bewusst abgeschaltet ──
-      # Der Container spricht ausschliesslich mit der DKX2 im lokalen Netz und
-      # braucht zur Laufzeit keinen Proxy. Mono wertet http_proxy/HTTP_PROXY
-      # auch fuer https-Adressen aus; ist einer gesetzt - etwa weil der Docker-
-      # Client ueber ~/.docker/config.json global einen einspeist -, laeuft der
-      # Login an der DKX2 in den Proxy und scheitert. Eine einzelne IP in
-      # no_proxy hilft dabei nicht, Mono ignoriert sie; nur "*" schaltet den
-      # Proxy zuverlaessig ab. Getestet, siehe DEPLOYMENT.md Abschnitt 2.
+      KEEP_ALIVE:      ${KEEP_ALIVE:-0}
+      # Zur Laufzeit kein Proxy: der Container spricht nur mit der KX2 im lokalen
+      # Netz. Java liest http_proxy aus der Umgebung zwar nicht von sich aus —
+      # aber der Docker-Client kann ueber ~/.docker/config.json jedem Container
+      # einen mitgeben, und fuer den AKC-Dienst unten ist das entscheidend.
       no_proxy: "*"
       NO_PROXY: "*"
     ports:
       - "${VNC_HOST_PORT:-5900}:5900"
       - "${NOVNC_HOST_PORT:-6080}:6080"
-      - "${CTRL_HOST_PORT:-8081}:8081"
     volumes:
-      # Protokolle von Bridge, Xvfb, x11vnc und websockify; ausserdem legt
+      # Protokolle von Xvfb, x11vnc und websockify; ausserdem legt
       # "deploy.sh shot" hier den Bildschirmabzug ab.
       - ./logs:/logs
-    # WinForms unter Mono legt Pixmaps in /dev/shm ab; die 64 MB der Vorgabe
-    # reichen fuer 1920x1080 nicht zuverlaessig.
-    shm_size: "256m"
+
+  # ── Vorgaenger: .NET-Client unter Mono, nur mit --profile akc ────────────
+  raritan-akc:
+    <<: *kvm-common
+    profiles: ["akc"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.phase3
+      args: *proxy-build-args
+    image: raritan-akc-phase3:latest
+    environment:
+      RARITAN_IP:   ${RARITAN_IP:?RARITAN_IP fehlt - siehe .env.example}
+      RARITAN_PORT: ${RARITAN_PORT:-443}
+      RARITAN_USER: ${RARITAN_USER:-admin}
+      RARITAN_PASS: ${RARITAN_PASS:?RARITAN_PASS fehlt - siehe .env.example}
+      RARITAN_PORT_ID:   ${RARITAN_PORT_ID:-}
+      RARITAN_PORT_NAME: ${RARITAN_PORT_NAME:-}
+      SCREEN_GEOMETRY: ${SCREEN_GEOMETRY:-1920x1080x24}
+      VNC_PASSWORD:    ${VNC_PASSWORD:-}
+      KEEP_ALIVE:      ${KEEP_ALIVE:-0}
+      # Hier ist die Abschaltung zwingend: Mono wertet http_proxy/HTTP_PROXY auch
+      # fuer https-Adressen aus und ignoriert eine einzelne IP in no_proxy. Ein
+      # global eingespeister Proxy verschluckt sonst den Login an der KX2.
+      no_proxy: "*"
+      NO_PROXY: "*"
+    ports:
+      - "${VNC_HOST_PORT_AKC:-5901}:5900"
+      - "${NOVNC_HOST_PORT_AKC:-6081}:6080"
+      - "${CTRL_HOST_PORT:-8081}:8081"
+    volumes:
+      - ./logs-akc:/logs
     ulimits:
       # Der AKC raeumt den Render-Baum beim Sitzungsende sehr tief rekursiv ab.
-      # Der Entrypoint setzt den weichen Wert selbst - dafuer muss der harte
+      # Der Entrypoint setzt den weichen Wert selbst — dafuer muss der harte
       # offen sein, sonst bricht der Teardown mit SIGSEGV ab.
       stack: -1
-    # Ohne Begrenzung wuerde ein Client, der in eine Fehlerschleife geraet, die
-    # Platte des Hosts fuellen — beim AKC-Teardown gemessene 1,1 GB in zwei Minuten.
-    logging:
-      driver: json-file
-      options:
-        max-size: "20m"
-        max-file: "5"
-    networks: [raritan-net]
 
 networks:
   raritan-net:
