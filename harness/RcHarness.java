@@ -96,6 +96,12 @@ public class RcHarness {
     private static volatile String lastReason = "";
     private static volatile boolean connected;
 
+    // Der Knopf "Erneut verbinden" muss denselben Anlauf ausloesen koennen wie
+    // die Schleife in main() — auch dann, wenn es noch gar kein Applet gibt.
+    // Dafuer bleiben die Startwerte hier stehen.
+    private static String cfgUser, cfgPass, cfgWantedPort;
+    private static int cfgW, cfgH;
+
     public static void main(String[] args) throws Exception {
         host = arg(args, 0, "RARITAN_IP", null);
         final String user = arg(args, 1, "RARITAN_USER", "admin");
@@ -125,33 +131,45 @@ public class RcHarness {
         // to server", weil die WebSocket-Verbindung bei jedem Neustart abriss,
         // und der Grund stand allein im Protokoll. Jetzt bleibt die Anzeige
         // stehen, nennt den Grund, und der Anlauf wiederholt sich von selbst.
+        cfgUser = user; cfgPass = pass; cfgWantedPort = wantedPort; cfgW = w; cfgH = h;
+
         SwingUtilities.invokeAndWait(() -> buildFrame(w, h));
         startDialogWatchdog();
 
         int retry = Integer.parseInt(env("RETRY_SECONDS", "30"));
         log("Wiederholung alle " + retry + " s (RETRY_SECONDS=0 schaltet sie ab)");
         while (true) {
-            try {
-                if (applet == null) {
-                    startup(user, pass, wantedPort, w, h);
-                    connectOnce();
-                } else if (!connected) {
-                    log("keine Sitzung — neuer Versuch");
-                    connectOnce();
-                }
-            } catch (Exception e) {
-                String why = e.getClass().getSimpleName()
-                        + (e.getMessage() == null ? "" : ": " + e.getMessage());
-                log("Anlauf fehlgeschlagen — " + why);
-                lastReason = why;
-                setState("kein Kontakt zum Geraet");
-                updateStatus();
-            }
+            if (!connected) attemptOnce();
             if (retry <= 0) {
                 log("RETRY_SECONDS=0 — keine Wiederholung");
                 Thread.currentThread().join();
             }
             Thread.sleep(retry * 1000L);
+        }
+    }
+
+    /**
+     * Ein vollstaendiger Anlauf: fehlt der Client noch, wird er erst geholt und
+     * gestartet, danach folgt der Connect. Schleife und Knopf gehen beide hier
+     * durch — sonst rief der Knopf connectOnce() auf, wenn es nach einem
+     * gescheiterten Start noch gar kein Applet gab, und lief in eine
+     * NullPointerException.
+     */
+    private static void attemptOnce() {
+        try {
+            if (applet == null) {
+                startup(cfgUser, cfgPass, cfgWantedPort, cfgW, cfgH);
+            } else {
+                log("keine Sitzung — neuer Versuch");
+            }
+            connectOnce();
+        } catch (Exception e) {
+            String why = e.getClass().getSimpleName()
+                    + (e.getMessage() == null ? "" : ": " + e.getMessage());
+            log("Anlauf fehlgeschlagen — " + why);
+            lastReason = why;
+            setState("kein Kontakt zum Geraet");
+            updateStatus();
         }
     }
 
@@ -317,8 +335,6 @@ public class RcHarness {
 
     // ── Applet starten ───────────────────────────────────────────────────────
     private static void launch(File jarDir, Map<String, String> params, int w, int h) throws Exception {
-        appletParams = params;
-        updatePortLabel();
         URL[] urls = new URL[CLIENT_JARS.length];
         for (int i = 0; i < CLIENT_JARS.length; i++) urls[i] = new File(jarDir, CLIENT_JARS[i]).toURI().toURL();
 
@@ -327,6 +343,10 @@ public class RcHarness {
         URLClassLoader loader = new URLClassLoader(urls, RcHarness.class.getClassLoader());
         Class<?> cls = Class.forName(APPLET_CLASS, true, loader);
         applet = (Applet) cls.getDeclaredConstructor().newInstance();
+        // Erst jetzt, wo das Applet wirklich existiert: sonst zeigt die Anzeige
+        // einen Port an, zu dem es gar keinen Client gibt.
+        appletParams = params;
+        updatePortLabel();
 
         // Der Client meldet seinen Zustand ueber die JSObject-Bruecke. Im Browser
         // landet das in der Seite; hier in Protokoll und Anzeige.
@@ -364,6 +384,11 @@ public class RcHarness {
      * Seite.
      */
     private static void connectOnce() {
+        if (applet == null || appletParams == null) {
+            log("noch kein Client geladen — connect() uebersprungen");
+            setState("noch keine Verbindung zum Geraet");
+            return;
+        }
         String portId = appletParams.getOrDefault("PORT_ID", "");
         if (portId.isEmpty()) {
             log("kein PORT_ID — kein connect(); das Applet bleibt im Leerlauf");
@@ -487,7 +512,7 @@ public class RcHarness {
         JButton again = new JButton("Erneut verbinden");
         again.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                new Thread(RcHarness::connectOnce, "reconnect").start();
+                new Thread(RcHarness::attemptOnce, "reconnect").start();
             }
         });
         info.add(again);
