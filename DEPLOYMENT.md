@@ -407,15 +407,43 @@ docker compose up -d
 ohne Neustart des Daemons aus. Zwei Zeilen in die `.env`:
 
 ```bash
-RARITAN_SUBNET=172.31.251.0/24
+RARITAN_SUBNET=10.201.7.0/24
 COMPOSE_FILE=docker-compose.yml:docker-compose.subnet.yml
 ```
 
 `COMPOSE_FILE` sorgt dafür, dass **jeder** Compose-Befehl die Override-Datei
 mitnimmt; ohne diese Zeile müsste sie jedes Mal angehängt werden, und ein
-vergessenes `docker compose up -d` legt das Netz wieder aus dem Pool an. Der
-Bereich darf sich weder mit dem OT-Netz noch mit einem anderen Docker-Netz auf
-dem Host überschneiden.
+vergessenes `docker compose up -d` legt das Netz wieder aus dem Pool an.
+
+Der Bereich sollte **außerhalb von `172.16.0.0/12`** liegen. Daraus bedient sich
+Docker selbst — `172.17.0.0/16`, `172.18.0.0/16` und so fort. Was dort heute frei
+ist, vergibt der Daemon morgen an einen anderen Stack, und dann steht dieser hier.
+
+Ob die Override-Datei überhaupt greift, und was danach steht:
+
+```bash
+docker compose config | grep -A3 ipam        # vor dem Start
+docker network inspect raritan_raritan-net \
+    --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}'
+```
+
+### `pool overlaps with other address space`
+
+Die andere Hälfte, und sie bedeutet etwas anderes als *fully subnetted*: der
+gewählte Bereich überschneidet sich mit etwas, das der Host schon kennt. Das ist
+**nicht nur** ein anderes Docker-Netz — Docker prüft auch die Routen des Hosts.
+Ein Bereich, der zum OT-Netz gehört oder über ein VPN geroutet wird, fällt
+genauso durch. Beide Listen prüfen:
+
+```bash
+docker network inspect $(docker network ls -q) \
+    --format '{{.Name}} {{range .IPAM.Config}}{{.Subnet}}{{end}}'
+ip route
+```
+
+Dann einen Bereich wählen, der in keiner der beiden auftaucht. Die zwei Zeilen
+wieder auszukommentieren hilft nicht: dann greift erneut die Pool-Vergabe, und
+man ist zurück bei *fully subnetted*.
 
 *3. Den Pool des Daemons vergrößern*, wenn auf dem Host dauerhaft viele Stacks
 laufen. In `/etc/docker/daemon.json`:
