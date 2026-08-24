@@ -90,15 +90,17 @@ public class RcHarness {
     private static JLabel stateLabel;
     private static JLabel eventLabel;
     private static JLabel reasonLabel;
+    private static JLabel portLabel;
+    private static JLayeredPane layers;
     private static volatile String lastEvent = "—";
     private static volatile String lastReason = "";
     private static volatile boolean connected;
 
     public static void main(String[] args) throws Exception {
         host = arg(args, 0, "RARITAN_IP", null);
-        String user = arg(args, 1, "RARITAN_USER", "admin");
-        String pass = arg(args, 2, "RARITAN_PASS", null);
-        String portId = arg(args, 3, "RARITAN_PORT_ID", "");
+        final String user = arg(args, 1, "RARITAN_USER", "admin");
+        final String pass = arg(args, 2, "RARITAN_PASS", null);
+        final String wantedPort = arg(args, 3, "RARITAN_PORT_ID", "");
         httpsPort = Integer.parseInt(env("RARITAN_PORT", "443"));
 
         if (host == null || host.isEmpty() || pass == null || pass.isEmpty()) {
@@ -111,9 +113,52 @@ public class RcHarness {
         log("Geraet: " + host + ":" + httpsPort + ", Benutzer: " + user);
 
         installLegacyTls();
-        CookieManager cookies = new CookieManager(null, CookiePolicy.ACCEPT_ALL);
-        CookieHandler.setDefault(cookies);
+        CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
 
+        final int w = Integer.parseInt(env("HARNESS_WIDTH", "1920"));
+        final int h = Integer.parseInt(env("HARNESS_HEIGHT", "1080"));
+
+        // Die Anzeige entsteht VOR dem ersten Anlauf. Frueher flog ein
+        // fehlgeschlagener Start — Geraet nicht erreichbar, Passwort falsch —
+        // als Ausnahme aus main(): die JVM endete, der Entrypoint endete, der
+        // Container startete neu. Im Browser sah man davon nur "Failed to connect
+        // to server", weil die WebSocket-Verbindung bei jedem Neustart abriss,
+        // und der Grund stand allein im Protokoll. Jetzt bleibt die Anzeige
+        // stehen, nennt den Grund, und der Anlauf wiederholt sich von selbst.
+        SwingUtilities.invokeAndWait(() -> buildFrame(w, h));
+        startDialogWatchdog();
+
+        int retry = Integer.parseInt(env("RETRY_SECONDS", "30"));
+        log("Wiederholung alle " + retry + " s (RETRY_SECONDS=0 schaltet sie ab)");
+        while (true) {
+            try {
+                if (applet == null) {
+                    startup(user, pass, wantedPort, w, h);
+                    connectOnce();
+                } else if (!connected) {
+                    log("keine Sitzung — neuer Versuch");
+                    connectOnce();
+                }
+            } catch (Exception e) {
+                String why = e.getClass().getSimpleName()
+                        + (e.getMessage() == null ? "" : ": " + e.getMessage());
+                log("Anlauf fehlgeschlagen — " + why);
+                lastReason = why;
+                setState("kein Kontakt zum Geraet");
+                updateStatus();
+            }
+            if (retry <= 0) {
+                log("RETRY_SECONDS=0 — keine Wiederholung");
+                Thread.currentThread().join();
+            }
+            Thread.sleep(retry * 1000L);
+        }
+    }
+
+    /** Anmelden, Parameter der Geraeteseite holen, rc.jar laden, Applet starten. */
+    private static void startup(String user, String pass, String wantedPort, int w, int h) throws Exception {
+        setState("melde mich an …");
+        String portId = wantedPort;
         String session = login(user, pass);
         log("Session: " + session.substring(0, Math.min(12, session.length())) + "… (" + session.length() + " Zeichen)");
 
@@ -161,7 +206,7 @@ public class RcHarness {
         }
 
         File jarDir = downloadClientJars();
-        launch(jarDir, params);
+        launch(jarDir, params, w, h);
     }
 
     // ── TLS ──────────────────────────────────────────────────────────────────
@@ -271,8 +316,9 @@ public class RcHarness {
     }
 
     // ── Applet starten ───────────────────────────────────────────────────────
-    private static void launch(File jarDir, Map<String, String> params) throws Exception {
+    private static void launch(File jarDir, Map<String, String> params, int w, int h) throws Exception {
         appletParams = params;
+        updatePortLabel();
         URL[] urls = new URL[CLIENT_JARS.length];
         for (int i = 0; i < CLIENT_JARS.length; i++) urls[i] = new File(jarDir, CLIENT_JARS[i]).toURI().toURL();
 
@@ -296,40 +342,18 @@ public class RcHarness {
             updateStatus();
         };
 
-        final int w = Integer.parseInt(env("HARNESS_WIDTH", "1920"));
-        final int h = Integer.parseInt(env("HARNESS_HEIGHT", "1080"));
-
         final URL base = new URL("https://" + host + ":" + httpsPort + "/");
         applet.setStub(new Stub(applet, params, base, w, h));
         applet.setSize(w, h);
 
-        SwingUtilities.invokeAndWait(new Runnable() {
-            public void run() { buildFrame(w, h); }
-        });
+        SwingUtilities.invokeAndWait(() -> attachApplet(w, h));
 
         log("Applet.init()");
         applet.init();
         log("Applet.start()");
         applet.start();
 
-        startDialogWatchdog();
-        connectOnce();
-
-        // Wiederholung: scheitert der Verbindungsaufbau — etwa weil kein CIM
-        // steckt oder der Zielrechner aus ist —, schliesst der Client sein
-        // Fenster wieder. Ohne Wiederholung bliebe der Rest der Sitzung nutzlos
-        // stehen, bis jemand den Container neu startet. Mit RETRY_SECONDS=0 aus.
-        int retry = Integer.parseInt(env("RETRY_SECONDS", "30"));
-        if (retry > 0) {
-            log("Wiederholung alle " + retry + " s, solange keine Sitzung steht (RETRY_SECONDS=0 schaltet das ab)");
-            while (true) {
-                Thread.sleep(retry * 1000L);
-                if (connected) continue;
-                log("keine Sitzung — neuer Versuch");
-                connectOnce();
-            }
-        }
-        Thread.currentThread().join();
+        log("=== Applet laeuft ===");
     }
 
     /**
@@ -446,7 +470,8 @@ public class RcHarness {
         info.add(Box.createVerticalStrut(16));
 
         info.add(line(host + ":" + httpsPort + "   Benutzer: " + env("RARITAN_USER", "admin")));
-        info.add(line("Port: " + appletParams.getOrDefault("PORT_ID", "—")));
+        portLabel = line("Port: —");
+        info.add(portLabel);
         info.add(Box.createVerticalStrut(16));
 
         stateLabel = line("starte …");
@@ -470,14 +495,14 @@ public class RcHarness {
         info.add(line("Die Sitzung oeffnet ein eigenes Fenster ueber dieser Anzeige."));
         info.add(line("Bleibt es aus, steht der Grund im Protokoll: docker compose logs -f"));
 
-        // Das Applet traegt visuell nichts bei, muss aber in voller Groesse in
-        // einem darstellbaren Rahmen haengen: getRootPane() braucht es fuer seine
-        // eigenen Dialoge. Deshalb liegt es unter der Anzeige, nicht neben ihr.
-        JLayeredPane layers = new JLayeredPane();
+        // Der Rahmen entsteht, bevor es ein Applet gibt: er soll auch dann etwas
+        // zeigen, wenn die Anmeldung am Geraet noch gar nicht geklappt hat.
+        // Das Applet kommt spaeter darunter — es traegt visuell nichts bei, muss
+        // aber in voller Groesse in einem darstellbaren Rahmen haengen, weil
+        // getRootPane() es fuer seine eigenen Dialoge braucht.
+        layers = new JLayeredPane();
         layers.setPreferredSize(new java.awt.Dimension(w, h));
-        applet.setBounds(0, 0, w, h);
         info.setBounds(0, 0, w, h);
-        layers.add(applet, JLayeredPane.DEFAULT_LAYER);
         layers.add(info, JLayeredPane.PALETTE_LAYER);
 
         JFrame frame = new JFrame("Raritan KVM — " + host);
@@ -486,6 +511,19 @@ public class RcHarness {
         frame.getContentPane().add(layers, BorderLayout.CENTER);
         frame.setSize(w, h);
         frame.setVisible(true);
+    }
+
+    private static void attachApplet(int w, int h) {
+        applet.setBounds(0, 0, w, h);
+        layers.add(applet, JLayeredPane.DEFAULT_LAYER);
+        layers.revalidate();
+        layers.repaint();
+    }
+
+    private static void updatePortLabel() {
+        if (portLabel == null) return;
+        SwingUtilities.invokeLater(() ->
+                portLabel.setText("Port: " + appletParams.getOrDefault("PORT_ID", "—")));
     }
 
     private static JLabel line(String text) {
