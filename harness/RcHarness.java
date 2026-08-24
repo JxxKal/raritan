@@ -91,6 +91,7 @@ public class RcHarness {
     private static JLabel eventLabel;
     private static JLabel reasonLabel;
     private static JLabel portLabel;
+    private static JLabel portsLabel;
     private static JLayeredPane layers;
     private static volatile String lastEvent = "—";
     private static volatile String lastReason = "";
@@ -161,6 +162,11 @@ public class RcHarness {
                 startup(cfgUser, cfgPass, cfgWantedPort, cfgW, cfgH);
             } else {
                 log("keine Sitzung — neuer Versuch");
+                // Die Lage kann sich geaendert haben: ein belegter Port wird
+                // frei, ein CIM kommt dazu. Vor dem naechsten connect() also
+                // nachsehen, statt die Liste vom Start zu glauben.
+                refreshPorts();
+                updatePortLabel();
             }
             connectOnce();
         } catch (Throwable e) {
@@ -189,11 +195,9 @@ public class RcHarness {
         Map<String, String> params = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         params.putAll(fetchAppletParams());
 
-        List<String> ports = discoverPorts();
-        if (portId == null || portId.isEmpty()) {
-            portId = ports.isEmpty() ? "" : ports.get(0);
-            if (!portId.isEmpty()) log("kein PORT_ID vorgegeben, nehme " + portId);
-        }
+        refreshPorts();
+        chosenPort = choosePort(portId);
+        if (chosenPort != null) portId = chosenPort.id;
 
         params.put("HOST", host);
         params.put("PORT", String.valueOf(httpsPort));
@@ -308,20 +312,229 @@ public class RcHarness {
         return out;
     }
 
-    private static final Pattern PORT_ID = Pattern.compile("P_[0-9a-fA-F]+_\\d+");
+    // ── Portliste vom Geraet ─────────────────────────────────────────────────
+    /**
+     * Ein Port, so wie ihn die Geraeteseite beschreibt.
+     *
+     * sidebar.asp traegt die ganze Portlage als JavaScript aus:
+     *
+     *   ports.addPortNew(J('PortId','P_000d5d06a393_0'), J('Name','Console 1'),
+     *                    J('PortIndex',0), J('PortNumber',1), J('Type','DCIM'),
+     *                    J('Class','KVM'), J('Status',1), J('StatAvailable',2), …)
+     *
+     * Die Bedeutung der beiden Zahlen steht im selben Skript (getPortsSummary):
+     * Status 0=down, 1=up; StatAvailable 0=frei, 1=verbunden, 2=belegt,
+     * 3=nicht verfuegbar. Genau diese Werte braucht man, um einen belegten Port
+     * von einem toten zu unterscheiden — vorher nahm der Harness blind den
+     * ersten und lief in "[0x10020001] Port sharing … is unavailable".
+     */
+    private static final class PortInfo {
+        final String id, name, index, type, pclass;
+        final int number, status, avail;
+        final String kvmPerm, vmPerm, pwrPerm;
 
-    private static List<String> discoverPorts() {
-        Set<String> ids = new LinkedHashSet<>();
-        try {
-            Matcher m = PORT_ID.matcher(get("/sidebar.asp"));
-            while (m.find()) ids.add(m.group());
-        } catch (IOException e) {
-            log("WARN: Portliste nicht lesbar: " + e.getMessage());
+        PortInfo(Map<String, String> f) {
+            id      = f.getOrDefault("PortId", "");
+            name    = f.getOrDefault("Name", id);
+            index   = f.getOrDefault("PortIndex", "0");
+            type    = f.getOrDefault("Type", "");
+            pclass  = f.getOrDefault("Class", "");
+            number  = num(f.get("PortNumber"), 0);
+            status  = num(f.get("Status"), -1);
+            avail   = num(f.get("StatAvailable"), -1);
+            kvmPerm = f.getOrDefault("KVMPermKey", "n/a");
+            vmPerm  = f.getOrDefault("VMPermKey", "n/a");
+            pwrPerm = f.getOrDefault("PWRPermKey", "n/a");
         }
-        List<String> list = new ArrayList<>(ids);
-        Collections.sort(list);
-        log("gefundene Ports: " + (list.isEmpty() ? "keine" : String.join(", ", list)));
-        return list;
+
+        /** Fuer einen vorgegebenen Port, den die Seite nicht kennt. */
+        PortInfo(String portId) {
+            id = portId; name = portId; index = "0"; type = ""; pclass = "KVM";
+            number = 0; status = -1; avail = -1;
+            kvmPerm = "n/a"; vmPerm = "n/a"; pwrPerm = "n/a";
+        }
+
+        private static int num(String s, int fallback) {
+            try { return s == null ? fallback : Integer.parseInt(s.trim()); }
+            catch (NumberFormatException e) { return fallback; }
+        }
+
+        boolean isKvm()  { return id.startsWith("P_") && "KVM".equalsIgnoreCase(pclass); }
+        boolean isUp()   { return status == 1; }
+        boolean isFree() { return avail == 0; }
+        boolean isBusy() { return avail == 1 || avail == 2; }
+
+        String availText() {
+            switch (avail) {
+                case 0:  return "frei";
+                case 1:  return "verbunden";
+                case 2:  return "belegt";
+                case 3:  return "nicht verfuegbar";
+                default: return "unbekannt";
+            }
+        }
+
+        String statusText() {
+            switch (status) {
+                case 0:  return "down";
+                case 1:  return "up";
+                default: return "?";
+            }
+        }
+
+        String describe() {
+            return String.format("%2d  %-24s %-16s %-6s %-16s %s",
+                    number, cut(name, 24), cut(type.isEmpty() ? "—" : type, 16),
+                    statusText(), availText(), id);
+        }
+
+        private static String cut(String s, int n) {
+            return s.length() <= n ? s : s.substring(0, n - 1) + "…";
+        }
+    }
+
+    private static final Pattern PORT_RECORD =
+            Pattern.compile("ports\\.addPortNew\\((.*?)\\)\\s*;", Pattern.DOTALL);
+    private static final Pattern J_FIELD =
+            Pattern.compile("J\\('([^']*)'\\s*,\\s*(?:'([^']*)'|([^,)]*))\\)");
+    private static final Pattern PERMS_CALL =
+            Pattern.compile("new\\s+Permissions\\(([^)]*)\\)");
+    private static final Pattern QUOTED = Pattern.compile("'([^']*)'");
+
+    private static volatile List<PortInfo> portList = new ArrayList<>();
+    private static volatile Map<String, String> devicePerms = new LinkedHashMap<>();
+    private static volatile PortInfo chosenPort;
+
+    /**
+     * Portlage neu einlesen. Scheitert das — abgelaufene Sitzung, Netzhaenger —,
+     * bleibt die alte Liste stehen: eine veraltete Anzeige ist besser als eine
+     * leere, und der Verbindungsversuch soll daran nicht scheitern.
+     */
+    private static void refreshPorts() {
+        String html;
+        try {
+            html = get("/sidebar.asp");
+        } catch (IOException e) {
+            log("WARN: Portliste nicht lesbar (" + e.getMessage() + ") — behalte die letzte");
+            return;
+        }
+
+        Map<String, String> perms = new LinkedHashMap<>();
+        Matcher pm = PERMS_CALL.matcher(html);
+        if (pm.find()) {
+            List<String> args = new ArrayList<>();
+            Matcher q = QUOTED.matcher(pm.group(1));
+            while (q.find()) args.add(q.group(1));
+            for (int i = 0; i + 1 < args.size(); i += 2) perms.put(args.get(i), args.get(i + 1));
+        }
+
+        List<PortInfo> found = new ArrayList<>();
+        Matcher rm = PORT_RECORD.matcher(html);
+        while (rm.find()) {
+            Map<String, String> fields = new LinkedHashMap<>();
+            Matcher fm = J_FIELD.matcher(rm.group(1));
+            while (fm.find()) {
+                String v = fm.group(2) != null ? fm.group(2) : fm.group(3);
+                fields.put(fm.group(1), v == null ? "" : v.trim());
+            }
+            PortInfo p = new PortInfo(fields);
+            if (!p.id.isEmpty()) found.add(p);
+        }
+
+        if (found.isEmpty()) {
+            log("WARN: keine Portsaetze in sidebar.asp gefunden — behalte die letzte Liste");
+            return;
+        }
+        portList = found;
+        devicePerms = perms;
+        logPorts();
+    }
+
+    private static void logPorts() {
+        List<PortInfo> kvm = new ArrayList<>();
+        for (PortInfo p : portList) if (p.isKvm()) kvm.add(p);
+        log("Portlage (" + kvm.size() + " KVM-Ports von " + portList.size() + " Eintraegen):");
+        log("    #  Name                     Typ              Status Verfuegbar       PortId");
+        for (PortInfo p : kvm) log("  " + p.describe());
+        log("  Zusammenfassung: " + portSummary());
+        if (!"yes".equals(devicePerms.get("pc_share"))) {
+            log("  Hinweis: die Benutzergruppe hat KEIN pc_share — ein belegter Port bleibt dicht.");
+        }
+    }
+
+    /** Kurzfassung fuer die Anzeige: wie viele Ports frei, belegt, tot sind. */
+    private static String portSummary() {
+        int frei = 0, belegt = 0, tot = 0, ohne = 0;
+        for (PortInfo p : portList) {
+            if (!p.isKvm()) continue;
+            if (!p.isUp()) { tot++; continue; }
+            if (p.avail == 3) { ohne++; }
+            else if (p.isBusy()) { belegt++; }
+            else { frei++; }
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(frei).append(" frei");
+        if (belegt > 0) sb.append(" · ").append(belegt).append(" belegt");
+        if (tot > 0) sb.append(" · ").append(tot).append(" ohne CIM/aus");
+        if (ohne > 0) sb.append(" · ").append(ohne).append(" nicht verfuegbar");
+        return sb.toString();
+    }
+
+    /**
+     * Welchen Port nehmen wir?
+     *
+     * Vorgabe schlaegt alles. Ohne Vorgabe bleibt es beim bisherigen Verhalten
+     * (der erste KVM-Port) — RARITAN_PORT_PICK=free nimmt stattdessen den ersten
+     * freien. Absichtlich nicht andersherum: eine laufende Installation soll
+     * nach einem Update nicht ploetzlich auf einem anderen Port landen.
+     */
+    private static PortInfo choosePort(String wanted) {
+        if (wanted != null && !wanted.isEmpty()) {
+            for (PortInfo p : portList) if (p.id.equalsIgnoreCase(wanted)) return p;
+            log("PORT_ID " + wanted + " steht nicht in der Portliste — nehme ihn trotzdem");
+            return new PortInfo(wanted);
+        }
+        List<PortInfo> kvm = new ArrayList<>();
+        for (PortInfo p : portList) if (p.isKvm()) kvm.add(p);
+        if (kvm.isEmpty()) {
+            log("kein KVM-Port gefunden");
+            return null;
+        }
+        if ("free".equalsIgnoreCase(env("RARITAN_PORT_PICK", "first"))) {
+            for (PortInfo p : kvm) {
+                if (p.isUp() && p.isFree()) {
+                    log("RARITAN_PORT_PICK=free — nehme " + p.id + " (" + p.name + ", frei)");
+                    return p;
+                }
+            }
+            log("RARITAN_PORT_PICK=free, aber kein freier Port — nehme den ersten");
+        }
+        PortInfo first = kvm.get(0);
+        log("kein PORT_ID vorgegeben, nehme " + first.id + " (" + first.name + ", " + first.availText() + ")");
+        return first;
+    }
+
+    /**
+     * Die Berechtigungszeichenkette, die die Weboberflaeche dem Applet reicht
+     * (getJacPermStringByItem): drei Zeichen fuer KVM, Virtual Media und Strom.
+     *
+     * Nur wenn sich alle drei Schluessel wirklich aufloesen lassen, wird
+     * gerechnet. Sonst bleibt es bei der Vorgabe — ein Port ohne CIM meldet
+     * "n/a" als Schluessel, und daraus wuerde "NNN" statt "CCC" werden: der
+     * Client haette dann weniger Rechte als der Benutzer wirklich hat.
+     */
+    private static String permString(PortInfo p, String fallback) {
+        String kvm = devicePerms.get(p.kvmPerm);
+        String vm  = devicePerms.get(p.vmPerm);
+        String pwr = devicePerms.get(p.pwrPerm);
+        if (kvm == null || vm == null || pwr == null) return fallback;
+        StringBuilder sb = new StringBuilder();
+        sb.append("control".equals(kvm) ? 'C' : "view".equals(kvm) ? 'R' : 'N');
+        sb.append("readwrite".equals(vm) ? 'C' : "readonly".equals(vm) ? 'R' : 'N');
+        sb.append("access".equals(pwr) ? 'C' : 'N');
+        String s = sb.toString();
+        if (!s.equals(fallback)) log("Rechte laut Geraeteseite: " + s + " (Vorgabe war " + fallback + ")");
+        return s;
     }
 
     // ── Client-Jars vom Geraet holen ─────────────────────────────────────────
@@ -400,15 +613,36 @@ public class RcHarness {
             setState("kein KVM-Port bekannt");
             return;
         }
-        String name = env("RARITAN_PORT_NAME", portId);
+        PortInfo p = chosenPort != null && chosenPort.id.equals(portId) ? chosenPort : new PortInfo(portId);
+
+        // Die Weboberflaeche ruft connect(0, 0, pindex, portId, pname, ptype,
+        // permString) — der dritte Wert ist der PortIndex, nicht konstant "0".
+        // Mit der festen "0" ging jeder Verbindungsversuch an den ersten Port,
+        // egal welche PORT_ID daneben stand.
+        String index = p.index;
+        String name = env("RARITAN_PORT_NAME", p.name.isEmpty() ? portId : p.name);
+        // Typ und Rechte bleiben bei den erprobten Vorgaben. "auto" nimmt, was
+        // die Geraeteseite meldet — also genau das, was auch der Browser
+        // schicken wuerde.
         String type = env("RARITAN_PORT_TYPE", "VM");
+        if ("auto".equalsIgnoreCase(type)) type = p.type.isEmpty() || "Not Available".equalsIgnoreCase(p.type) ? "VM" : p.type;
         String perm = env("RARITAN_PORT_PERM", "CCC");
-        log("connect(0, \"0\", \"0\", \"" + portId + "\", \"" + name + "\", \"" + type + "\", \"" + perm + "\")");
-        setState("verbinde mit " + portId + " …");
+        if ("auto".equalsIgnoreCase(perm)) perm = permString(p, "CCC");
+
+        if (p.isBusy()) {
+            String wie = p.avail == 2 ? "belegt" : "verbunden";
+            log("Achtung: " + p.id + " ist " + wie + ". Ohne PC-Share weist das Geraet die Sitzung ab "
+                    + "([0x10020001]) — Security Settings → PC Share Mode.");
+        } else if (p.status == 0) {
+            log("Achtung: " + p.id + " meldet sich als down — meist fehlt das CIM.");
+        }
+
+        log("connect(0, \"0\", \"" + index + "\", \"" + portId + "\", \"" + name + "\", \"" + type + "\", \"" + perm + "\")");
+        setState("verbinde mit " + name + " …");
         try {
             java.lang.reflect.Method connect = applet.getClass().getMethod("connect",
                     int.class, String.class, String.class, String.class, String.class, String.class, String.class);
-            connect.invoke(applet, 0, "0", "0", portId, name, type, perm);
+            connect.invoke(applet, 0, "0", index, portId, name, type, perm);
         } catch (Exception e) {
             log("connect() fehlgeschlagen: " + e);
             setState("connect() fehlgeschlagen: " + e.getMessage());
@@ -502,6 +736,9 @@ public class RcHarness {
         info.add(line(host + ":" + httpsPort + "   Benutzer: " + env("RARITAN_USER", "admin")));
         portLabel = line("Port: —");
         info.add(portLabel);
+        portsLabel = line("");
+        portsLabel.setForeground(new Color(0x9a9a9a));
+        info.add(portsLabel);
         info.add(Box.createVerticalStrut(16));
 
         stateLabel = line("starte …");
@@ -550,10 +787,28 @@ public class RcHarness {
         layers.repaint();
     }
 
+    /**
+     * Zeigt den gewaehlten Port mit Namen und Verfuegbarkeit, darunter die Lage
+     * der uebrigen. Ein belegter Port ist damit auf einen Blick als solcher zu
+     * erkennen — vorher stand dort nur eine Kennung, und warum nichts kam,
+     * musste man im Protokoll suchen.
+     */
     private static void updatePortLabel() {
         if (portLabel == null) return;
-        SwingUtilities.invokeLater(() ->
-                portLabel.setText("Port: " + appletParams.getOrDefault("PORT_ID", "—")));
+        final PortInfo p = chosenPort;
+        final String id = p != null ? p.id
+                : appletParams == null ? "—" : appletParams.getOrDefault("PORT_ID", "—");
+        final String text = p == null ? "Port: " + id
+                : "Port: " + (p.number > 0 ? p.number + "  " : "") + p.name + "   (" + p.availText() + ", " + p.statusText() + ")";
+        final String summary = portList.isEmpty() ? "" : "Ports: " + portSummary();
+        final boolean warn = p != null && p.isBusy() && !"yes".equals(devicePerms.get("pc_share"));
+        SwingUtilities.invokeLater(() -> {
+            portLabel.setText(text);
+            if (portsLabel != null) {
+                portsLabel.setText(warn ? summary + "   — belegt und kein PC-Share: das Geraet weist die Sitzung ab" : summary);
+                portsLabel.setForeground(warn ? new Color(0xd7ba7d) : new Color(0x9a9a9a));
+            }
+        });
     }
 
     private static JLabel line(String text) {

@@ -190,6 +190,44 @@ denselben Code **unobfuskiert** — `nn.pp.rccore.impl.rfb.V01_21/V01_22`,
 `RfbAuthenticatorV01_22`, `ImageDecoderLrle`. Also: MPC zum Nachlesen, `rc.jar`
 zum Ausführen.
 
+### Portlage: was der Harness vom Gerät liest
+
+`sidebar.asp` trägt die ganze Portlage als JavaScript aus — der Harness liest sie
+statt nur die Kennungen herauszufischen:
+
+```
+ports.addPortNew(J('PortId','P_000d5d06a393_0'), J('Name','Console 1'),
+                 J('PortIndex',0), J('PortNumber',1), J('Type','DCIM'),
+                 J('Class','KVM'), J('Status',1), J('StatAvailable',2), …)
+```
+
+Die Bedeutung der Zahlen steht im selben Skript (`getPortsSummary`):
+
+| Feld | Werte |
+|---|---|
+| `Status` | `0` down · `1` up |
+| `StatAvailable` | `0` frei · `1` verbunden · `2` belegt · `3` nicht verfügbar |
+
+Daraus wird eine Tabelle im Protokoll, eine Kurzfassung in der Anzeige
+(„Ports: 6 frei · 1 belegt · 1 ohne CIM") und ein Hinweis, bevor der
+Verbindungsversuch in `[0x10020001]` läuft.
+
+**Der `PortIndex` zählt.** Die Weboberfläche ruft
+`connect(0, 0, pindex, portId, pname, ptype, permString)`. Der Harness schickte
+dort früher eine feste `"0"` — jeder Versuch ging damit an den ersten Port, egal
+welche `PORT_ID` daneben stand.
+
+| Umgebungsvariable | Vorgabe | Wirkung |
+|---|---|---|
+| `RARITAN_PORT_ID` | — | fester Port; schlägt alles andere |
+| `RARITAN_PORT_PICK` | `first` | `free` nimmt stattdessen den ersten freien Port |
+| `RARITAN_PORT_TYPE` | `VM` | `auto` nimmt den Typ von der Geräteseite |
+| `RARITAN_PORT_PERM` | `CCC` | `auto` rechnet die Rechte wie die Weboberfläche (`getJacPermStringByItem`) |
+| `RARITAN_PORT_NAME` | Name vom Gerät | überschreibt den Anzeigenamen |
+
+`first` bleibt die Vorgabe, damit eine laufende Installation nach einem Update
+nicht plötzlich auf einem anderen Port landet.
+
 ### Was am Gerät eingestellt sein muss
 
 Zwei Einstellungen entscheiden darüber, ob der Client überhaupt eine Sitzung
