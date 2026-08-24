@@ -1,0 +1,13 @@
+# Hebt die Sperren einer heutigen JRE auf, die eine Dominion KX2 sonst aussperren.
+#
+# Die KX2 spricht ausschliesslich TLS 1.0 mit AES256-SHA und weist sich mit einem
+# selbstsignierten, SHA1-signierten und abgelaufenen Zertifikat aus. OpenJDK 17
+# lehnt beides ab Werk ab — die Verbindung scheitert dann im Handshake, ohne dass
+# der Anwendungscode je etwas davon sieht.
+#
+# Wird per -Djava.security.properties=<diese Datei> gesetzt und ueberschreibt nur
+# die drei Schluessel; alles andere bleibt wie in der JRE-Vorgabe. Gilt damit nur
+# fuer diesen Prozess, nicht fuer die JRE insgesamt.
+jdk.tls.disabledAlgorithms=
+jdk.certpath.disabledAlgorithms=
+jdk.tls.legacyAlgorithms=
