@@ -189,3 +189,39 @@ Stack-Limit, keine Reflection auf den `BrowserMediator`.
 denselben Code **unobfuskiert** — `nn.pp.rccore.impl.rfb.V01_21/V01_22`,
 `RfbAuthenticatorV01_22`, `ImageDecoderLrle`. Also: MPC zum Nachlesen, `rc.jar`
 zum Ausführen.
+
+### Was am Gerät eingestellt sein muss
+
+Zwei Einstellungen entscheiden darüber, ob der Client überhaupt eine Sitzung
+bekommt — beide haben nichts mit dem Container zu tun, sondern mit der Policy
+des KX2. Sie sind über die Weboberfläche erreichbar und (Feldnamen aus dem
+Formular, Firmware 2.7.0.5.2183) auch per HTTP setzbar:
+
+| Einstellung | Seite | Feld | Wirkung |
+|---|---|---|---|
+| **PC Share Mode** | `security.asp` → Security Settings | `FV_3_seccryptkvm` (`Private` \| `PC-Share`) | Auf `Private` weist das Gerät jede zweite Sitzung auf einen belegten Port ab — der Client zeigt dann `[0x10020001] : Port sharing on Port … is unavailable`. Auf `PC-Share` steigt man neben der bestehenden Sitzung ein. |
+| **VM Share Mode** | `security.asp` | `FV_2_seccryptkvm` | Dasselbe für Virtual Media. |
+| **Enable Standard Local Port** | `local_port_settings.asp` → Local Port Settings | `FV_3_localportsettings` | Abschalten trennt die lokale Konsole ganz. Nötig, wenn die lokale Konsole einen Port dauerhaft an sich zieht und PC-Share nicht gewollt ist. |
+| **Log Out Idle Users** | `security.asp` | `FV_3_secloglim` / `FV_4_secloglim` (Minuten) | Räumt vergessene Sitzungen von selbst ab. |
+
+`[0x10020001]` ist also **keine** Fehlfunktion des Harness: das Applet läuft, der
+Port ist nur belegt und die Policy verbietet das Teilen. Die Meldung stammt aus
+einem modalen Dialog des Clients und landet über den Dialogwächter in der
+Anzeige.
+
+### Wie der Client zurückmeldet — und warum die DOM-Brücke zählt
+
+Im Bytecode von `rc.jar` (2.7.0.5.2183) benutzt `RemoteConsoleApplet` genau
+zwei Einstiege des Java-Plugins:
+
+```
+DOMService.getService:(Ljava/lang/Object;)Lcom/sun/java/browser/dom/DOMService;
+DOMService.invokeAndWait:(Lcom/sun/java/browser/dom/DOMAction;)Ljava/lang/Object;
+```
+
+Die `DOMAction` (`RemoteConsoleApplet$1`) **ignoriert den DOMAccessor
+vollständig** und ruft darin nur `JSObject.call(methode, args)` auf. Die
+DOM-Brücke ist also bloß der Threadwechsel für den JavaScript-Aufruf. Deshalb
+genügt der Ersatz in `harness/com/sun/java/browser/dom/`: er führt die Aktion
+direkt aus, der `JSObject`-Ersatz fängt den Aufruf, und jede Rückmeldung des
+Clients steht im Protokoll — ohne dass es je ein echtes Dokument bräuchte.
