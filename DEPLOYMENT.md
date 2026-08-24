@@ -9,6 +9,55 @@ als VNC beziehungsweise noVNC nach außen gereicht.
 
 ---
 
+## 0. Kurzfassung für einen abgeschotteten Host
+
+Erreicht der Host GitHub über einen Proxy, ist das alles. Die Reihenfolge ist
+wichtig: Punkt 1 wird gern vergessen, und der Fehler taucht dann im Build auf.
+
+```bash
+# 1. Proxy für den Docker-DAEMON — er zieht das Basis-Image, nicht der Build.
+mkdir -p /etc/systemd/system/docker.service.d
+cat > /etc/systemd/system/docker.service.d/http-proxy.conf <<'EOF'
+[Service]
+Environment="HTTP_PROXY=http://proxy.example.org:3128"
+Environment="HTTPS_PROXY=http://proxy.example.org:3128"
+Environment="NO_PROXY=localhost,127.0.0.1,192.168.0.0/16"
+EOF
+systemctl daemon-reload && systemctl restart docker    # stoppt kurz ALLE Container
+
+# 2. Proxy für git
+git config --global http.proxy http://proxy.example.org:3128
+
+# 3. Holen und einrichten
+git clone https://github.com/JxxKal/raritan.git && cd raritan
+cp .env.example .env
+vi .env      # RARITAN_IP, RARITAN_PASS, und HTTP_PROXY/HTTPS_PROXY für apt
+
+# 4. Starten
+docker compose up -d --build
+```
+
+Danach `http://<host>:6080/` im Browser. Die Seite verbindet von selbst.
+
+**Aktualisieren:**
+
+```bash
+git pull && docker compose up -d --build
+```
+
+**Nach einem Firmware-Update der KX2** genügt ein `docker compose restart`: der
+Client (`rc.jar`) wird bei jedem Start vom Gerät geladen, nicht aus dem Image.
+Das Image bleibt unberührt.
+
+**Zur Laufzeit braucht der Container kein Internet** — nur das lokale Netz zur
+KX2. Der Proxy wird ausschliesslich beim Bauen gebraucht, im Container ist er
+mit `no_proxy=*` ausdrücklich abgeschaltet (Begründung in Abschnitt 2).
+
+Geht gar nichts über den Proxy, siehe *Ohne Internet auf dem Zielhost* in
+Abschnitt 2 — dann wird das Image anderswo gebaut und als Datei übertragen.
+
+---
+
 ## 1. Voraussetzungen
 
 - Docker Engine 24 oder neuer mit Compose-Plugin v2
