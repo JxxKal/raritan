@@ -244,6 +244,15 @@ sonst aus `$HOME/ApplicationSettings.xml`, die es im Container nicht gibt):
 
 `HARNESS_SINGLE_MOUSE=1` setzt beides passend — Modus an, Rückfrage aus.
 
+**Vorsicht in dieser Umgebung.** Der Single Cursor Mode greift Maus *und*
+Tastatur exklusiv („this software will have exclusive control over the mouse
+and keyboard"). Hinter VNC heißt das: hängt der Grab, kommt man im Browser an
+nichts mehr heran — auch nicht ans Menü des Clients. Fluchtwege:
+`Strg+LinkeAlt+O` im noVNC, `./deploy.sh ungrab`, oder `HARNESS_SINGLE_MOUSE=0`
+und neu starten. Für Windows-Ziele ist **Mouse → Absolute** der ruhigere Weg:
+absolute Koordinaten brauchen keinen Grab und kein Nachrechnen der
+Mausbeschleunigung.
+
 Tastenkürzel im Client (aus `SourceResources_en.properties`):
 
 | Kürzel | Funktion |

@@ -806,12 +806,35 @@ public class RcHarness {
             String title = dlg.getTitle() == null ? "" : dlg.getTitle();
 
             if (live) {
-                // Einmal melden, damit die Meldung im Protokoll steht, dann in
-                // Ruhe lassen. Ohne das Merken stuende sie bei jedem Durchlauf
-                // des Waechters erneut da.
+                // Stehenlassen allein genuegt nicht: ein modaler Dialog parkt
+                // den EDT in einer verschachtelten Ereignisschleife und
+                // blockiert dabei ALLE Fenster der Anwendung. Liegt er dann
+                // ausserhalb des Bildes oder hinter dem Sitzungsfenster, ist
+                // die Oberflaeche tot — man kommt an nichts mehr heran, auch
+                // nicht an den Dialog selbst.
+                //
+                // Also: in die Mitte des Bildschirms holen und nach vorn
+                // bringen, damit er anklickbar ist. Nur beim ersten Mal, sonst
+                // rueckt der Waechter ihn alle 1,5 s wieder zurecht, waehrend
+                // jemand ihn gerade verschiebt.
                 if (reportedDialogs.add(System.identityHashCode(dlg))) {
-                    log("Dialog des Clients [" + title + "] — bleibt stehen, "
-                            + "der Benutzer entscheidet (HARNESS_REAP_DIALOGS=always raeumt ab)");
+                    String text = collectText(dlg).trim();
+                    log("Dialog des Clients [" + title + "]: "
+                            + (text.isEmpty() ? "(ohne Text)" : text));
+                    log("  bleibt stehen und wird nach vorn geholt — "
+                            + "HARNESS_REAP_DIALOGS=always raeumt stattdessen ab");
+                    lastReason = text.isEmpty() ? title : text;
+                    updateStatus();
+                    try {
+                        java.awt.Dimension scr = java.awt.Toolkit.getDefaultToolkit().getScreenSize();
+                        dlg.setLocation(Math.max(0, (scr.width - dlg.getWidth()) / 2),
+                                        Math.max(0, (scr.height - dlg.getHeight()) / 2));
+                        dlg.setAlwaysOnTop(true);
+                        dlg.toFront();
+                        dlg.requestFocus();
+                    } catch (Throwable t) {
+                        log("  konnte den Dialog nicht nach vorn holen: " + t);
+                    }
                 }
                 continue;
             }

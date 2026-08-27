@@ -65,6 +65,17 @@ case "${1:-up}" in
                  ${3:+-e \"s|^RARITAN_PASS=.*|RARITAN_PASS=$3|\"} \
                  ${4:+-e \"s|^RARITAN_USER=.*|RARITAN_USER=$4|\"} .env && grep -E '^RARITAN_(IP|USER)=' .env"
              compose up -d; compose ps ;;
+    # Notbremse: Single Cursor Mode verlassen und einen X-Grab loesen.
+    # Der Modus greift Maus UND Tastatur exklusiv ("this software will have
+    # exclusive control") -- haengt der Grab, kommt man im Browser an nichts
+    # mehr heran, auch nicht ans Menue des Clients.
+    ungrab)  compose "exec -T raritan-kvm bash -lc '
+                 export DISPLAY=:99
+                 W=\$(xdotool search --name \"Virtual KVM Client\" | head -1)
+                 [ -n \"\$W\" ] && xdotool windowactivate \$W
+                 xdotool key ctrl+alt+o
+                 xdotool key XF86Ungrab 2>/dev/null
+                 echo \"Strg+LinkeAlt+O gesendet\"'" ;;
     # Screenshot des Xvfb-Displays holen (Container muss laufen)
     shot)    OUT="${2:-screen-$(date +%H%M%S).png}"
              compose "exec -T raritan-kvm bash -lc 'DISPLAY=:99 xwd -root -silent | xwdtopnm 2>/dev/null | pnmtopng > /logs/screen.png'"
