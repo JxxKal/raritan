@@ -10,12 +10,12 @@ set -u
 
 LOG_DIR=/logs; mkdir -p "$LOG_DIR"
 DISPLAY_NUM=99; export DISPLAY=":${DISPLAY_NUM}"
-XVFB_PID=""; FLUXBOX_PID=""; X11VNC_PID=""; WS_PID=""; WATCH_PID=""
+XVFB_PID=""; FLUXBOX_PID=""; X11VNC_PID=""; WS_PID=""; WATCH_PID=""; VNCWATCH_PID=""
 
 log() { echo "[$(date -Iseconds)] $*"; }
 cleanup() {
     log "shutting down…"
-    for p in "$WATCH_PID" "$WS_PID" "$X11VNC_PID" "$FLUXBOX_PID" "$XVFB_PID"; do
+    for p in "$WATCH_PID" "$VNCWATCH_PID" "$WS_PID" "$X11VNC_PID" "$FLUXBOX_PID" "$XVFB_PID"; do
         [ -n "$p" ] && kill "$p" 2>/dev/null
     done
     wait 2>/dev/null
@@ -104,6 +104,31 @@ log "noVNC-Startseite -> vnc.html?${NOVNC_QUERY}"
 log "starte websockify/noVNC → http://<host>:6080/"
 websockify --web=/usr/share/novnc 6080 "localhost:5900" > "$LOG_DIR/websockify.log" 2>&1 &
 WS_PID=$!
+
+# ── Waechter fuer die Anzeigekette ──
+# x11vnc und websockify sind der einzige Weg, auf dem ein Browser das Bild
+# ueberhaupt sieht. Stirbt einer von beiden, laeuft der Container scheinbar
+# weiter — im Browser bleibt es aber bei "verbinden…", weil niemand mehr auf
+# 5900 bzw. 6080 antwortet. Ein Neustart des Containers waere die einzige Hilfe,
+# und die Ursache stuende nur im Log. Der Waechter startet beide bei Bedarf neu.
+(
+    while true; do
+        sleep 10
+        if ! kill -0 "$X11VNC_PID" 2>/dev/null; then
+            log "WARN: x11vnc ist weg — starte neu"
+            x11vnc -display ":${DISPLAY_NUM}" -forever -shared -rfbport 5900 \
+                -xkb -add_keysyms -threads -defer 5 -wait 5 -cursor most -cursorpos \
+                "${VNC_AUTH[@]}" -o "$LOG_DIR/x11vnc.log" &
+            X11VNC_PID=$!
+        fi
+        if ! kill -0 "$WS_PID" 2>/dev/null; then
+            log "WARN: websockify ist weg — starte neu"
+            websockify --web=/usr/share/novnc 6080 "localhost:5900" >> "$LOG_DIR/websockify.log" 2>&1 &
+            WS_PID=$!
+        fi
+    done
+) &
+VNCWATCH_PID=$!
 
 GEO_W="${SCREEN_GEOMETRY%%x*}"
 GEO_REST="${SCREEN_GEOMETRY#*x}"

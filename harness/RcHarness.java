@@ -157,7 +157,33 @@ public class RcHarness {
      * gescheiterten Start noch gar kein Applet gab, und lief in eine
      * NullPointerException.
      */
+    /**
+     * Nur EIN Anlauf zur Zeit.
+     *
+     * Der Knopf "Erneut verbinden" startet einen eigenen Thread, und die
+     * Schleife in main() laeuft weiter — beide riefen frueher ungebremst
+     * attemptOnce(). Am Geraet gemessen ueberlappten sich die Anlaeufe dann:
+     * waehrend der eine noch in Applet.init() stand, meldete sich der naechste
+     * schon wieder an und lud ein ZWEITES Applet. Ergebnis waren drei
+     * Sitzungsfenster und drei connect() auf denselben Port — der sich prompt
+     * als "verbunden" meldete, belegt von uns selbst.
+     */
+    private static final java.util.concurrent.atomic.AtomicBoolean busy =
+            new java.util.concurrent.atomic.AtomicBoolean();
+
     private static void attemptOnce() {
+        if (!busy.compareAndSet(false, true)) {
+            log("es laeuft bereits ein Anlauf — dieser wird uebersprungen");
+            return;
+        }
+        try {
+            attemptOnceLocked();
+        } finally {
+            busy.set(false);
+        }
+    }
+
+    private static void attemptOnceLocked() {
         try {
             if (applet == null) {
                 startup(cfgUser, cfgPass, cfgWantedPort, cfgW, cfgH);
@@ -185,8 +211,41 @@ public class RcHarness {
         }
     }
 
+    /**
+     * Ein frueher gestartetes Applet samt Sitzungsfenster abraeumen.
+     *
+     * Ohne das bleibt bei jedem neuen Anlauf das alte stehen: unsichtbar
+     * uebereinander liegende Fenster, jedes mit einer eigenen Sitzung auf
+     * demselben Port. Das Geraet zaehlt die mit und weist irgendwann ab.
+     */
+    private static void discardApplet() {
+        Applet old = applet;
+        if (old == null) return;
+        applet = null;
+        appletParams = null;
+        log("raeume das vorige Applet ab");
+        try {
+            old.stop();
+            old.destroy();
+        } catch (Throwable t) {
+            log("beim Abraeumen: " + t);
+        }
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                for (java.awt.Window win : java.awt.Window.getWindows()) {
+                    if (win == ownFrame || !win.isVisible()) continue;
+                    win.setVisible(false);
+                    win.dispose();
+                }
+            });
+        } catch (Exception e) {
+            log("beim Schliessen der Fenster: " + e);
+        }
+    }
+
     /** Anmelden, Parameter der Geraeteseite holen, rc.jar laden, Applet starten. */
     private static void startup(String user, String pass, String wantedPort, int w, int h) throws Exception {
+        discardApplet();
         setState("melde mich an …");
         String portId = wantedPort;
         String session = login(user, pass);
