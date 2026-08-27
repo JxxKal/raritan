@@ -76,6 +76,23 @@ case "${1:-up}" in
                  xdotool key ctrl+alt+o
                  xdotool key XF86Ungrab 2>/dev/null
                  echo \"Strg+LinkeAlt+O gesendet\"'" ;;
+    # Zeigt, was auf dem Display steht, und ob ein modaler Dialog die
+    # Java-Oberflaeche blockiert. Ein solcher Dialog parkt den EDT: der
+    # Fenstermanager kann Fenster dann noch verschieben, aber IM Client
+    # reagiert nichts mehr -- kein Menue, kein Klick.
+    #   ./deploy.sh dialogs        nur zeigen
+    #   ./deploy.sh dialogs close  zusaetzlich Enter/Escape schicken
+    dialogs) DO="${2:-}"
+             compose "exec -T raritan-kvm bash -lc '
+                 export DISPLAY=:99
+                 echo \"--- Fenster auf :99 ---\"
+                 xwininfo -root -children 2>/dev/null | grep -E \"^ +0x\" | sed \"s/^ *//\"
+                 echo \"--- aktives Fenster ---\"
+                 xdotool getactivewindow getwindowname 2>&1
+                 if [ \"$DO\" = close ]; then
+                     echo \"--- schicke Escape, dann Enter ---\"
+                     xdotool key Escape; sleep 1; xdotool key Return
+                 fi'" ;;
     # Screenshot des Xvfb-Displays holen (Container muss laufen)
     shot)    OUT="${2:-screen-$(date +%H%M%S).png}"
              compose "exec -T raritan-kvm bash -lc 'DISPLAY=:99 xwd -root -silent | xwdtopnm 2>/dev/null | pnmtopng > /logs/screen.png'"

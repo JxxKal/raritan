@@ -790,13 +790,26 @@ public class RcHarness {
      * gar nicht einschalten — und genau der behebt die auseinanderlaufenden
      * Mauszeiger im KVM-Fenster. Dasselbe traf die Video-Settings.
      *
-     * Jetzt gilt: keine Sitzung → abraeumen wie bisher, damit der naechste
-     * Anlauf durchkommt. Sitzung steht → stehen lassen; der Benutzer sieht den
-     * Dialog im Browser und entscheidet selbst. HARNESS_REAP_DIALOGS=always
-     * erzwingt das alte Verhalten, =never schaltet den Waechter ganz ab.
+     * Der naheliegende Ausweg — Dialoge waehrend einer Sitzung stehen lassen —
+     * hat sich am Geraet als schlimmer erwiesen: ein modaler Dialog parkt den
+     * EDT in einer verschachtelten Ereignisschleife und friert damit die
+     * gesamte Java-Oberflaeche ein. Der Fenstermanager kann das Fenster dann
+     * noch verschieben (das laeuft an Java vorbei), aber IM Client reagiert
+     * nichts mehr — kein Menue, kein Klick, also auch kein Weg zurueck.
+     * Zentrieren und nach vorn holen half nicht, wenn der Dialog gar nicht
+     * erst gezeichnet wird.
+     *
+     * Vorgabe ist deshalb wieder "always": lieber eine Meldung, die nur im
+     * Protokoll steht, als eine Oberflaeche, an die niemand mehr herankommt.
+     * "nosession" laesst Dialoge waehrend einer Sitzung stehen (dann ist
+     * ./deploy.sh dialogs close der Notausgang), "never" schaltet den Waechter
+     * ganz ab.
+     *
+     * Fuer den Single Cursor Mode gibt es den Weg ohne Dialog:
+     * HARNESS_SINGLE_MOUSE=1 (siehe applyMousePreferences).
      */
     private static void reapDialogs() {
-        String mode = env("HARNESS_REAP_DIALOGS", "nosession");
+        String mode = env("HARNESS_REAP_DIALOGS", "always");
         if ("never".equalsIgnoreCase(mode)) return;
         boolean live = !"always".equalsIgnoreCase(mode) && sessionWindowOpen();
 

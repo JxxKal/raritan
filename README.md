@@ -261,14 +261,39 @@ Tastenkürzel im Client (aus `SourceResources_en.properties`):
 | `Strg+LinkeAlt+O` | Single Cursor Mode verlassen |
 | `Strg+Alt+S` | Synchronize Mouse |
 
-**Der Dialogwächter darf laufende Sitzungen nicht stören.** Er war für den Fall
-gedacht, dass ein gescheiterter Verbindungsversuch einen modalen Fehlerdialog
-öffnet, der den EDT in einer verschachtelten Ereignisschleife parkt — dann
-kommt niemand mehr an „Erneut verbinden". Er räumte aber ausnahmslos *jeden*
-Dialog ab, auch die Rückfrage zum Single Cursor Mode: die war nach spätestens
-1,5 s wieder weg, bevor jemand OK drücken konnte. `HARNESS_REAP_DIALOGS`
-steuert das — `nosession` (Vorgabe) räumt nur ab, solange keine Sitzung steht,
-`always` ist das alte Verhalten, `never` schaltet den Wächter ab.
+### Der Dialogwächter — und warum er abräumt
+
+Ein modaler Swing-Dialog parkt den EDT in einer verschachtelten
+Ereignisschleife (`Dialog.show` → `WaitDispatchSupport.enter`) und friert damit
+die **gesamte** Java-Oberfläche ein. Das sieht von außen tückisch aus: Fenster
+lassen sich weiter verschieben — das macht der Fenstermanager, an Java vorbei —
+aber *im* Client reagiert nichts mehr, kein Menü, kein Klick. Also auch kein
+Weg, den Dialog selbst wegzuklicken.
+
+Deshalb räumt der Wächter ab (`HARNESS_REAP_DIALOGS=always`, Vorgabe) und
+schreibt den Text ins Protokoll. Der Versuch, Dialoge während einer Sitzung
+stehen zu lassen (`nosession`), war ein Rückschritt: die Rückfrage zum Single
+Cursor Mode ließ sich zwar bestätigen, aber jeder andere Dialog konnte die
+Oberfläche lahmlegen. Zentrieren und Nach-vorn-holen half nicht, wenn der
+Dialog gar nicht erst gezeichnet wird.
+
+| Wert | Verhalten |
+|---|---|
+| `always` (Vorgabe) | jeden Dialog abräumen, Text ins Protokoll |
+| `nosession` | während einer Sitzung stehen lassen — Notausgang: `./deploy.sh dialogs close` |
+| `never` | Wächter aus |
+
+Was der Wächter kostet: Dialoge, die man eigentlich bedienen will (Single
+Cursor Mode, Video Settings), sind nach spätestens 1,5 s weg. Für den Single
+Cursor Mode gibt es deshalb den Weg ohne Dialog — `HARNESS_SINGLE_MOUSE=1`.
+
+Zur Diagnose einer eingefrorenen Oberfläche:
+
+```
+./deploy.sh dialogs        # welche Fenster stehen auf :99, was ist aktiv
+./deploy.sh dialogs close  # Escape, dann Enter hinterher
+./deploy.sh ungrab         # Single Cursor Mode verlassen, X-Grab lösen
+```
 
 ### Was am Gerät eingestellt sein muss
 
