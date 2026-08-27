@@ -727,8 +727,13 @@ public class RcHarness {
 
         if (p.isBusy()) {
             String wie = p.avail == 2 ? "belegt" : "verbunden";
-            log("Achtung: " + p.id + " ist " + wie + ". Ohne PC-Share weist das Geraet die Sitzung ab "
-                    + "([0x10020001]) — Security Settings → PC Share Mode.");
+            log("Achtung: " + p.id + " ist " + wie + " — es sitzt schon jemand darauf,");
+            log("  oft die lokale Konsole des Geraets. Das hat zwei Folgen:");
+            log("  ohne PC-Share weist das Geraet die Sitzung ganz ab ([0x10020001]);");
+            log("  MIT PC-Share kommt sie zustande, aber Tastatur und Maus gehoeren");
+            log("  dem Ersten — man sieht dann das Bild und kann nichts eingeben.");
+            log("  Abhilfe: die andere Sitzung trennen (Port Access → Disconnect) oder");
+            log("  die lokale Konsole abschalten (Device Settings → Local Port Settings).");
         } else if (p.status == 0) {
             log("Achtung: " + p.id + " meldet sich als down — meist fehlt das CIM.");
         }

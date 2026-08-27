@@ -314,6 +314,24 @@ Port ist nur belegt und die Policy verbietet das Teilen. Die Meldung stammt aus
 einem modalen Dialog des Clients und landet über den Dialogwächter in der
 Anzeige.
 
+**PC-Share löst das Problem nur halb.** Ein belegter Port hat zwei getrennte
+Folgen, und die zweite sieht aus wie ein Fehler des Containers:
+
+| Policy | Port belegt | Ergebnis |
+|---|---|---|
+| `Private` | ja | Sitzung wird ganz abgewiesen — `[0x10020001]` |
+| `PC-Share` | ja | Sitzung kommt zustande, **aber Tastatur und Maus gehören dem Ersten** |
+
+Im zweiten Fall läuft das Video sauber durch, während Maus *und* Tastatur
+gemeinsam wirkungslos bleiben — beide zugleich, nicht eines von beidem. Das ist
+die Signatur, an der man es erkennt; ein USB-Profil oder der Mausmodus ändern
+daran nichts, die liegen eine Ebene tiefer.
+
+Abhilfe: die andere Sitzung trennen (Port Access → Disconnect) oder die lokale
+Konsole abschalten (`FV_3_localportsettings`). Der Harness weist im Protokoll
+darauf hin, sobald der gewählte Port als *belegt* oder *verbunden* gemeldet
+wird.
+
 ### Wie der Client zurückmeldet — und warum die DOM-Brücke zählt
 
 Im Bytecode von `rc.jar` (2.7.0.5.2183) benutzt `RemoteConsoleApplet` genau
