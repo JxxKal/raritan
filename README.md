@@ -228,6 +228,39 @@ welche `PORT_ID` daneben stand.
 `first` bleibt die Vorgabe, damit eine laufende Installation nach einem Update
 nicht plötzlich auf einem anderen Port landet.
 
+### Maus und Meldungen im Browser
+
+Im KVM-Fenster laufen zwei Mauszeiger auseinander: der echte des Zielrechners
+und der, den der Client zeichnet. Dagegen hilft der **Single Cursor Mode**.
+
+Der Client liest sein Verhalten aus den Java-Preferences unter
+`/ApplicationSettings` (`ApplicationPreferences.ROOT_NODE`; die Werte kämen
+sonst aus `$HOME/ApplicationSettings.xml`, die es im Container nicht gibt):
+
+| Schlüssel | Wirkung |
+|---|---|
+| `AlwaysOpenSingleMouseMode` | jede Sitzung startet im Single Cursor Mode |
+| `singleMouseInstructions` | zeigt die Rückfrage dazu |
+
+`HARNESS_SINGLE_MOUSE=1` setzt beides passend — Modus an, Rückfrage aus.
+
+Tastenkürzel im Client (aus `SourceResources_en.properties`):
+
+| Kürzel | Funktion |
+|---|---|
+| `Strg+Alt+X` | Single Mouse Cursor an/aus |
+| `Strg+LinkeAlt+O` | Single Cursor Mode verlassen |
+| `Strg+Alt+S` | Synchronize Mouse |
+
+**Der Dialogwächter darf laufende Sitzungen nicht stören.** Er war für den Fall
+gedacht, dass ein gescheiterter Verbindungsversuch einen modalen Fehlerdialog
+öffnet, der den EDT in einer verschachtelten Ereignisschleife parkt — dann
+kommt niemand mehr an „Erneut verbinden". Er räumte aber ausnahmslos *jeden*
+Dialog ab, auch die Rückfrage zum Single Cursor Mode: die war nach spätestens
+1,5 s wieder weg, bevor jemand OK drücken konnte. `HARNESS_REAP_DIALOGS`
+steuert das — `nosession` (Vorgabe) räumt nur ab, solange keine Sitzung steht,
+`always` ist das alte Verhalten, `never` schaltet den Wächter ab.
+
 ### Was am Gerät eingestellt sein muss
 
 Zwei Einstellungen entscheiden darüber, ob der Client überhaupt eine Sitzung

@@ -243,9 +243,45 @@ public class RcHarness {
         }
     }
 
+    /**
+     * Mauszeiger-Verhalten vorgeben, bevor der Client startet.
+     *
+     * Im KVM-Fenster laufen sonst zwei Zeiger auseinander: der echte des
+     * Zielrechners und der, den der Client zeichnet. Dagegen hilft der Single
+     * Cursor Mode — nur liess er sich schwer einschalten, weil der
+     * Bestaetigungsdialog frueher vom Dialogwaechter abgeraeumt wurde (siehe
+     * reapDialogs) und ein Menueweg im Browser umstaendlich ist.
+     *
+     * Der Client liest sein Verhalten aus den Java-Preferences unter
+     * /ApplicationSettings (in ApplicationPreferences.importPreferences als
+     * ROOT_NODE hinterlegt; die Werte kommen sonst aus
+     * $HOME/ApplicationSettings.xml, die es im Container nicht gibt):
+     *
+     *   AlwaysOpenSingleMouseMode  jede Sitzung startet im Single Cursor Mode
+     *   singleMouseInstructions    zeigt die Rueckfrage dazu
+     *
+     * HARNESS_SINGLE_MOUSE=1 setzt beides passend — Modus an, Rueckfrage aus.
+     * Ohne die Variable bleibt alles wie gehabt.
+     */
+    private static void applyMousePreferences() {
+        if (!"1".equals(env("HARNESS_SINGLE_MOUSE", "0"))) return;
+        try {
+            java.util.prefs.Preferences p =
+                    java.util.prefs.Preferences.userRoot().node("/ApplicationSettings");
+            p.putBoolean("AlwaysOpenSingleMouseMode", true);
+            p.putBoolean("singleMouseInstructions", false);
+            p.flush();
+            log("HARNESS_SINGLE_MOUSE=1 — Sitzung startet im Single Cursor Mode, ohne Rueckfrage");
+            log("  (verlassen im Browser mit Strg+LinkeAlt+O; Single Cursor an/aus: Strg+Alt+X)");
+        } catch (Exception e) {
+            log("WARN: Mauseinstellung nicht gesetzt: " + e);
+        }
+    }
+
     /** Anmelden, Parameter der Geraeteseite holen, rc.jar laden, Applet starten. */
     private static void startup(String user, String pass, String wantedPort, int w, int h) throws Exception {
         discardApplet();
+        applyMousePreferences();
         setState("melde mich an …");
         String portId = wantedPort;
         String session = login(user, pass);
@@ -741,12 +777,46 @@ public class RcHarness {
         log("Dialogwaechter laeuft — modale Meldungen des Clients landen in der Anzeige");
     }
 
+    /**
+     * Steht eine Sitzung, gehoeren die Dialoge dem Benutzer.
+     *
+     * Der Waechter war fuer den Fall gedacht, dass ein Verbindungsversuch
+     * scheitert und der Fehlerdialog den EDT in einer verschachtelten
+     * Ereignisschleife parkt — dann kommt niemand mehr an "Erneut verbinden".
+     * Er raeumte aber ausnahmslos JEDEN Dialog ab, auch die des laufenden
+     * Betriebs: die Rueckfrage zum Single Cursor Mode ("You are about to enter
+     * Single Cursor mode … press Ctrl+LeftAlt+O") war nach spaetestens 1,5 s
+     * wieder weg, bevor jemand OK druecken konnte. Damit liess sich der Modus
+     * gar nicht einschalten — und genau der behebt die auseinanderlaufenden
+     * Mauszeiger im KVM-Fenster. Dasselbe traf die Video-Settings.
+     *
+     * Jetzt gilt: keine Sitzung → abraeumen wie bisher, damit der naechste
+     * Anlauf durchkommt. Sitzung steht → stehen lassen; der Benutzer sieht den
+     * Dialog im Browser und entscheidet selbst. HARNESS_REAP_DIALOGS=always
+     * erzwingt das alte Verhalten, =never schaltet den Waechter ganz ab.
+     */
     private static void reapDialogs() {
+        String mode = env("HARNESS_REAP_DIALOGS", "nosession");
+        if ("never".equalsIgnoreCase(mode)) return;
+        boolean live = !"always".equalsIgnoreCase(mode) && sessionWindowOpen();
+
         for (java.awt.Window win : java.awt.Window.getWindows()) {
             if (!(win instanceof java.awt.Dialog) || !win.isVisible()) continue;
             java.awt.Dialog dlg = (java.awt.Dialog) win;
-            String text = collectText(dlg).trim();
             String title = dlg.getTitle() == null ? "" : dlg.getTitle();
+
+            if (live) {
+                // Einmal melden, damit die Meldung im Protokoll steht, dann in
+                // Ruhe lassen. Ohne das Merken stuende sie bei jedem Durchlauf
+                // des Waechters erneut da.
+                if (reportedDialogs.add(System.identityHashCode(dlg))) {
+                    log("Dialog des Clients [" + title + "] — bleibt stehen, "
+                            + "der Benutzer entscheidet (HARNESS_REAP_DIALOGS=always raeumt ab)");
+                }
+                continue;
+            }
+
+            String text = collectText(dlg).trim();
             log("Meldung des Clients [" + title + "]: " + (text.isEmpty() ? "(ohne Text)" : text));
             // In eine eigene Zeile, nicht nach lastEvent: sonst ueberschreibt das
             // unmittelbar folgende jacDisconnected() genau die Begruendung, die
@@ -757,6 +827,10 @@ public class RcHarness {
             dlg.dispose();
         }
     }
+
+    /** Schon gemeldete Dialoge — verhindert dieselbe Zeile alle 1,5 s. */
+    private static final Set<Integer> reportedDialogs =
+            java.util.Collections.synchronizedSet(new LinkedHashSet<>());
 
     /** Sammelt die Beschriftungen eines Dialogs — dort steht die Fehlermeldung. */
     private static String collectText(java.awt.Container c) {
