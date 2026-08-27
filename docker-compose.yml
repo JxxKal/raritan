@@ -59,7 +59,7 @@ services:
       # Leer lassen: der Harness nimmt den ersten Port, den das Geraet nennt.
       RARITAN_PORT_ID:   ${RARITAN_PORT_ID:-}
       RARITAN_PORT_NAME: ${RARITAN_PORT_NAME:-}
-      RARITAN_PORT_TYPE: ${RARITAN_PORT_TYPE:-VM}
+      RARITAN_PORT_TYPE: ${RARITAN_PORT_TYPE:-auto}
       RARITAN_PORT_PERM: ${RARITAN_PORT_PERM:-CCC}
       # 0 haelt das Passwort zurueck, falls die Session zur Anmeldung genuegt.
       HARNESS_SEND_PASSWORD: ${HARNESS_SEND_PASSWORD:-1}

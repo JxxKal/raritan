@@ -221,7 +221,7 @@ welche `PORT_ID` daneben stand.
 |---|---|---|
 | `RARITAN_PORT_ID` | — | fester Port; schlägt alles andere |
 | `RARITAN_PORT_PICK` | `first` | `free` nimmt stattdessen den ersten freien Port |
-| `RARITAN_PORT_TYPE` | `VM` | `auto` nimmt den Typ von der Geräteseite |
+| `RARITAN_PORT_TYPE` | `auto` | Typ von der Geräteseite (wie im Browser); fester Wert übersteuert |
 | `RARITAN_PORT_PERM` | `CCC` | `auto` rechnet die Rechte wie die Weboberfläche (`getJacPermStringByItem`) |
 | `RARITAN_PORT_NAME` | Name vom Gerät | überschreibt den Anzeigenamen |
 

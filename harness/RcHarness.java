@@ -717,10 +717,13 @@ public class RcHarness {
         // egal welche PORT_ID daneben stand.
         String index = p.index;
         String name = env("RARITAN_PORT_NAME", p.name.isEmpty() ? portId : p.name);
-        // Typ und Rechte bleiben bei den erprobten Vorgaben. "auto" nimmt, was
-        // die Geraeteseite meldet — also genau das, was auch der Browser
-        // schicken wuerde.
-        String type = env("RARITAN_PORT_TYPE", "VM");
+        // Der Typ kommt von der Geraeteseite, so wie ihn auch der Browser
+        // schickt (die Weboberflaeche reicht item.ptype durch). Frueher stand
+        // hier fest "VM" — an einem VM-Port faellt das nicht auf, an einem
+        // DVM-DP schon: der Client setzt an diesem Wert die Sitzung auf, die
+        // USB-Emulation fuer Tastatur und Maus eingeschlossen. Ein fester Wert
+        // laesst sich weiter vorgeben, er ist nur nicht mehr die Vorgabe.
+        String type = env("RARITAN_PORT_TYPE", "auto");
         if ("auto".equalsIgnoreCase(type)) type = p.type.isEmpty() || "Not Available".equalsIgnoreCase(p.type) ? "VM" : p.type;
         String perm = env("RARITAN_PORT_PERM", "CCC");
         if ("auto".equalsIgnoreCase(perm)) perm = permString(p, "CCC");
