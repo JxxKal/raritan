@@ -92,6 +92,7 @@ public class RcHarness {
     private static JLabel reasonLabel;
     private static JLabel portLabel;
     private static JLabel portsLabel;
+    private static JFrame ownFrame;
     private static JLayeredPane layers;
     private static volatile String lastEvent = "—";
     private static volatile String lastReason = "";
@@ -140,7 +141,7 @@ public class RcHarness {
         int retry = Integer.parseInt(env("RETRY_SECONDS", "30"));
         log("Wiederholung alle " + retry + " s (RETRY_SECONDS=0 schaltet sie ab)");
         while (true) {
-            if (!connected) attemptOnce();
+            if (!sessionLive()) attemptOnce();
             if (retry <= 0) {
                 log("RETRY_SECONDS=0 — keine Wiederholung");
                 Thread.currentThread().join();
@@ -773,6 +774,7 @@ public class RcHarness {
         layers.add(info, JLayeredPane.PALETTE_LAYER);
 
         JFrame frame = new JFrame("Raritan KVM — " + host);
+        ownFrame = frame;
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.getContentPane().setLayout(new BorderLayout());
         frame.getContentPane().add(layers, BorderLayout.CENTER);
@@ -823,11 +825,49 @@ public class RcHarness {
         SwingUtilities.invokeLater(() -> stateLabel.setText(text));
     }
 
+    /**
+     * Steht die Sitzung?
+     *
+     * Bisher haing das allein an der jacConnected-Rueckmeldung ueber die
+     * JSObject-Bruecke. Am Geraet gemessen kommt die aber nicht zuverlaessig:
+     * der Client oeffnet sein Sitzungsfenster, das Bild laeuft — und `connected`
+     * bleibt trotzdem false. Die Schleife in main() schiebt dann alle
+     * RETRY_SECONDS ein weiteres connect() nach, das Geraet sieht einen zweiten
+     * Zugriff auf den eigenen, inzwischen belegten Port und weist ihn ab
+     * ([0x10020001]). Der Harness saegte sich damit selbst den Ast ab.
+     *
+     * Verlaesslicher ist das Fenster: der Client rendert die Sitzung in einen
+     * eigenen Rahmen. Ist ausser unserer Anzeige ein sichtbares Fenster da,
+     * laeuft die Sitzung — unabhaengig davon, ob eine Rueckmeldung kam.
+     */
+    private static boolean sessionWindowOpen() {
+        for (java.awt.Window win : java.awt.Window.getWindows()) {
+            if (win == ownFrame || !win.isVisible()) continue;
+            if (win instanceof java.awt.Dialog) continue;   // Meldungen zaehlen nicht
+            if (win.getWidth() < 200 || win.getHeight() < 200) continue;
+            return true;
+        }
+        return false;
+    }
+
+    /** connected ODER ein offenes Sitzungsfenster — beides heisst: nicht nachschieben. */
+    private static boolean sessionLive() {
+        if (connected) return true;
+        try {
+            final boolean[] open = new boolean[1];
+            SwingUtilities.invokeAndWait(() -> open[0] = sessionWindowOpen());
+            return open[0];
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private static void updateStatus() {
         if (eventLabel == null) return;
         SwingUtilities.invokeLater(() -> {
             eventLabel.setText("Letzte Meldung: " + lastEvent);
-            stateLabel.setText(connected ? "Sitzung steht" : "keine Sitzung");
+            stateLabel.setText(connected ? "Sitzung steht"
+                    : sessionWindowOpen() ? "Sitzung steht (Fenster offen)" : "keine Sitzung");
             if (reasonLabel != null) reasonLabel.setText(lastReason.isEmpty() ? "" : "Grund: " + lastReason);
         });
     }

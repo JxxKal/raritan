@@ -40,14 +40,31 @@ else
     log "WARN: ${RARITAN_IP}:${RARITAN_PORT} nicht erreichbar — versuche es trotzdem"
 fi
 
+# "docker compose restart" startet den Prozess neu, nicht den Container: Lock und
+# Socket des alten Xvfb liegen dann noch da. Xvfb verweigert daraufhin den Start
+# ("Server is already active for display 99") — und weil die Bereitschaftspruefung
+# frueher nur auf den Socket sah, meldete der Entrypoint trotzdem "Xvfb bereit".
+# Der Harness lief in ein AWTError und der Container blieb ohne Anzeige stehen.
+if [ -e "/tmp/.X${DISPLAY_NUM}-lock" ] || [ -S "/tmp/.X11-unix/X${DISPLAY_NUM}" ]; then
+    if pgrep -f "Xvfb :${DISPLAY_NUM}" > /dev/null 2>&1; then
+        log "FATAL: auf :${DISPLAY_NUM} laeuft bereits ein Xvfb"; exit 3
+    fi
+    log "verwaister X-Lock von einem frueheren Lauf — raeume auf"
+    rm -f "/tmp/.X${DISPLAY_NUM}-lock" "/tmp/.X11-unix/X${DISPLAY_NUM}"
+fi
+
 log "starte Xvfb auf :${DISPLAY_NUM} (${SCREEN_GEOMETRY})"
 Xvfb ":${DISPLAY_NUM}" -screen 0 "${SCREEN_GEOMETRY}" -nolisten tcp > "$LOG_DIR/xvfb.log" 2>&1 &
 XVFB_PID=$!
+# xdpyinfo statt Socket-Existenz: der Socket sagt nur, dass irgendwann einmal
+# einer da war — nicht, dass jetzt jemand antwortet.
+XVFB_UP=0
 for i in $(seq 1 50); do
-    [ -S "/tmp/.X11-unix/X${DISPLAY_NUM}" ] && break
-    kill -0 "$XVFB_PID" 2>/dev/null || { log "FATAL: Xvfb beendet sich beim Start"; exit 3; }
+    if xdpyinfo -display ":${DISPLAY_NUM}" > /dev/null 2>&1; then XVFB_UP=1; break; fi
+    kill -0 "$XVFB_PID" 2>/dev/null || { log "FATAL: Xvfb beendet sich beim Start:"; cat "$LOG_DIR/xvfb.log"; exit 3; }
     sleep 0.2
 done
+[ "$XVFB_UP" = 1 ] || { log "FATAL: Xvfb antwortet nicht auf :${DISPLAY_NUM}:"; cat "$LOG_DIR/xvfb.log"; exit 3; }
 log "Xvfb bereit"
 
 log "starte fluxbox"
