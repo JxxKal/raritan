@@ -295,6 +295,25 @@ Zur Diagnose einer eingefrorenen Oberfläche:
 ./deploy.sh ungrab         # Single Cursor Mode verlassen, X-Grab lösen
 ```
 
+### Port wechseln
+
+Die Anzeige listet alle KVM-Ports als Knöpfe, eingefärbt nach Zustand:
+
+| Farbe | Bedeutung |
+|---|---|
+| grün | up und frei |
+| gelb | up, aber belegt oder verbunden |
+| grau | down — meist kein CIM |
+
+Ein Klick wählt den Port und baut die Sitzung neu auf; der Tooltip zeigt
+Kennung, Typ und Status. Bewusst über denselben Weg wie der Start, statt über
+`connect(1, …)` umzuschalten — der Umschaltpfad des Clients ist hier nie
+erprobt worden, der Neuaufbau schon.
+
+Die Liste frischt sich vor jedem Anlauf auf, ein belegter Port wird also von
+selbst wieder grün, sobald ihn jemand freigibt. Wer immer denselben Port will,
+setzt weiterhin `RARITAN_PORT_ID`.
+
 ### Was am Gerät eingestellt sein muss
 
 Zwei Einstellungen entscheiden darüber, ob der Client überhaupt eine Sitzung

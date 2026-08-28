@@ -92,6 +92,7 @@ public class RcHarness {
     private static JLabel reasonLabel;
     private static JLabel portLabel;
     private static JLabel portsLabel;
+    private static JPanel portPanel;
     private static JFrame ownFrame;
     private static JLayeredPane layers;
     private static volatile String lastEvent = "—";
@@ -544,6 +545,7 @@ public class RcHarness {
         portList = found;
         devicePerms = perms;
         logPorts();
+        rebuildPortButtons();
     }
 
     private static void logPorts() {
@@ -917,6 +919,19 @@ public class RcHarness {
         portsLabel = line("");
         portsLabel.setForeground(new Color(0x9a9a9a));
         info.add(portsLabel);
+        info.add(Box.createVerticalStrut(10));
+
+        // Die Portliste stand bisher nur im Protokoll. Umschalten hiess: die
+        // .env aendern und den Container neu starten. Hier stehen die Ports als
+        // Knoepfe, jeder mit seinem Zustand.
+        portPanel = new JPanel();
+        portPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 6, 6));
+        portPanel.setBackground(new Color(0x1e1e1e));
+        portPanel.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+        info.add(portPanel);
+        // Ohne Deckel zieht sich das Panel im BoxLayout auf die ganze
+        // Resthoehe und schiebt Status und Knopf an den unteren Rand.
+        portPanel.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 1));
         info.add(Box.createVerticalStrut(16));
 
         stateLabel = line("starte …");
@@ -988,6 +1003,55 @@ public class RcHarness {
                 portsLabel.setForeground(warn ? new Color(0xd7ba7d) : new Color(0x9a9a9a));
             }
         });
+    }
+
+    /**
+     * Fuer jeden KVM-Port ein Knopf. Ein Klick waehlt ihn und baut die Sitzung
+     * neu auf — das laeuft ueber dieselben Wege wie der Start, statt ueber
+     * connect(1, …) umzuschalten: der Umschaltpfad des Clients ist hier nie
+     * erprobt worden, der Neuaufbau schon.
+     */
+    private static void rebuildPortButtons() {
+        if (portPanel == null) return;
+        final List<PortInfo> kvm = new ArrayList<>();
+        for (PortInfo p : portList) if (p.isKvm()) kvm.add(p);
+
+        SwingUtilities.invokeLater(() -> {
+            portPanel.removeAll();
+            for (PortInfo p : kvm) {
+                JButton b = new JButton(p.number + ": " + p.name);
+                b.setToolTipText(p.id + " — " + p.type + ", " + p.statusText() + ", " + p.availText());
+                b.setMargin(new java.awt.Insets(2, 8, 2, 8));
+                // Farbe sagt, was einen erwartet: frei und da, belegt, oder ohne CIM.
+                if (!p.isUp())        b.setForeground(new Color(0x808080));
+                else if (p.isBusy())  b.setForeground(new Color(0xd7ba7d));
+                else                  b.setForeground(new Color(0x4ec9b0));
+                boolean current = chosenPort != null && chosenPort.id.equals(p.id);
+                if (current) b.setFont(b.getFont().deriveFont(Font.BOLD));
+                b.setEnabled(!current || !connected);
+                b.addActionListener(e -> switchToPort(p));
+                portPanel.add(b);
+            }
+            // Der Deckel muss zur tatsaechlichen Zeilenzahl passen, sonst
+            // werden umgebrochene Knopfreihen abgeschnitten.
+            portPanel.setMaximumSize(new java.awt.Dimension(
+                    Integer.MAX_VALUE, portPanel.getPreferredSize().height));
+            portPanel.revalidate();
+            portPanel.repaint();
+        });
+    }
+
+    /** Port wechseln: Auswahl merken, alte Sitzung abraeumen, neu verbinden. */
+    private static void switchToPort(PortInfo p) {
+        log("Portwechsel angefordert: " + p.id + " (" + p.name + ", " + p.availText() + ")");
+        cfgWantedPort = p.id;
+        chosenPort = p;
+        updatePortLabel();
+        setState("wechsle auf " + p.name + " …");
+        new Thread(() -> {
+            discardApplet();
+            attemptOnce();
+        }, "portwechsel").start();
     }
 
     private static JLabel line(String text) {
